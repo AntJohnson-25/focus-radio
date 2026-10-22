@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Custombiztool Focus Radio &mdash; Work Music &amp; Pomodoro Timer</title>
+<meta name="description" content="Free focus music radio with a built-in Pomodoro timer. Original tracks, rain and fireplace sounds, and music that lowers itself on your breaks. Nothing to install, no signup.">
+<meta name="theme-color" content="#070814">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;1,9..144,400&family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ground:#070814;
+    --glass:rgba(16,15,32,0.46);
+    --glass-strong:rgba(14,13,28,0.62);
+    --glass-border:rgba(255,255,255,0.12);
+    --glass-border-hover:rgba(255,255,255,0.28);
+    --ink:#F7F2EA;
+    --ink-soft:#BDB6CC;
+    --ink-faint:#837D98;
+    --focus:#FFB878;
+    --break:#84E3B6;
+    --mode:var(--focus);
+    --rain:0; --fire:0; --hum:0;
+  }
+  body.is-break{--mode:var(--break);}
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--ground);color:var(--ink);font-family:'Manrope',-apple-system,'Segoe UI',sans-serif;
+    min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased;}
+
+  /* ---------- the room: night window behind everything ---------- */
+  .scene{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;}
+  .sky{position:absolute;inset:0;background:linear-gradient(180deg,#04050d 0%,#0b1029 40%,#231b42 74%,#3a2449 100%);}
+  .sky::after{content:'';position:absolute;inset:0;opacity:0;transition:opacity 4s ease;
+    background:linear-gradient(180deg,transparent 25%,rgba(70,150,150,.32) 100%);}
+  body.is-break .sky::after{opacity:1;}
+  .stars{position:absolute;left:0;top:0;width:100%;height:65%;}
+  .stars circle{fill:#fff;}
+  .moon{position:absolute;top:10vh;right:13vw;width:clamp(56px,9vw,110px);aspect-ratio:1;border-radius:50%;
+    background:radial-gradient(circle at 36% 34%,#fffaf0,#efe3c8 58%,#cdbf9f);
+    box-shadow:0 0 50px 16px rgba(255,238,205,.16),0 0 170px 70px rgba(255,238,205,.07);}
+  .hum{position:absolute;inset:-15%;opacity:calc(var(--hum) * .95);transition:opacity .6s ease;
+    background:radial-gradient(ellipse at 50% 72%,rgba(150,110,255,.34),transparent 58%);}
+  .city{position:absolute;left:0;bottom:0;width:100%;height:48vh;}
+  .city .tw{animation:twinkle 6s ease-in-out infinite;}
+  .lamp{position:absolute;left:-14vw;bottom:-28vh;width:62vw;height:80vh;
+    background:radial-gradient(ellipse at 42% 68%,rgba(255,186,118,.30),rgba(255,166,90,.08) 46%,transparent 70%);}
+  .fire{position:absolute;right:-12vw;bottom:-24vh;width:72vw;height:78vh;opacity:var(--fire);transition:opacity .6s ease;
+    transform-origin:70% 90%;animation:flicker 2.8s ease-in-out infinite;
+    background:radial-gradient(ellipse at 62% 78%,rgba(255,118,40,.75),rgba(255,82,24,.28) 42%,transparent 70%);}
+  #rainCv{position:absolute;inset:0;width:100%;height:100%;}
+  .frame{position:absolute;inset:0;
+    box-shadow:inset 0 0 0 10px #04040a,inset 0 0 140px 50px rgba(0,0,0,.62);}
+  .frame::after{content:'';position:absolute;left:0;right:0;bottom:0;height:30vh;
+    background:linear-gradient(180deg,transparent,rgba(7,8,20,.72));}
+  @keyframes twinkle{0%,100%{opacity:.85;}50%{opacity:.25;}}
+  @keyframes flicker{0%,100%{transform:scale(1);}22%{transform:scale(1.05) translateY(-1.5%);}48%{transform:scale(.97);}71%{transform:scale(1.03) translateY(-.8%);}}
+  @keyframes breathe{0%,100%{transform:scale(1);}50%{transform:scale(1.06);}}
+  .hum{animation:breathe 8s ease-in-out infinite;}
+
+  /* ---------- foreground ---------- */
+  .stage{position:relative;z-index:1;min-height:100vh;min-height:100svh;display:flex;flex-direction:column;}
+  header{display:flex;align-items:center;gap:10px;padding:16px 24px;}
+  header .badge{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;flex:none;
+    background:color-mix(in srgb,var(--mode) 22%,transparent);color:var(--mode);border:1px solid color-mix(in srgb,var(--mode) 50%,transparent);
+    transition:color 1s ease,background 1s ease,border-color 1s ease;}
+  header .name{font-weight:800;font-size:17px;letter-spacing:-.01em;}
+  header .onair{font-size:11px;font-weight:800;letter-spacing:.12em;color:var(--ink-faint);border:1px solid var(--glass-border);
+    border-radius:99px;padding:3px 8px;text-transform:uppercase;transition:color .4s ease,border-color .4s ease;}
+  body.is-playing header .onair{color:#ff8f8f;border-color:rgba(255,143,143,.5);}
+  header a{color:var(--ink-soft);font-size:13px;text-decoration:none;margin-left:auto;}
+  header a:hover{color:var(--ink);}
+
+  .center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:0 16px 18px;}
+  .center h1{font-family:'Fraunces',Georgia,serif;font-style:italic;font-weight:400;font-size:clamp(19px,2.4vw,25px);
+    line-height:1.3;margin:0;text-align:center;max-width:52ch;text-wrap:balance;color:#EDE6DA;text-shadow:0 2px 18px rgba(0,0,0,.6);}
+
+  .glass{background:var(--glass);border:1px solid var(--glass-border);
+    backdrop-filter:blur(20px) saturate(140%);-webkit-backdrop-filter:blur(20px) saturate(140%);
+    box-shadow:0 1px 0 rgba(255,255,255,0.08) inset,0 24px 50px -24px rgba(0,0,0,.8);}
+
+  button{font:600 13px 'Manrope',sans-serif;color:var(--ink);background:rgba(255,255,255,0.05);border:1px solid var(--glass-border);
+    border-radius:12px;padding:9px 14px;cursor:pointer;}
+  button:hover{border-color:var(--glass-border-hover);background:rgba(255,255,255,0.08);}
+  button.primary{color:#1a1222;background:var(--mode);border-color:var(--mode);font-weight:800;
+    box-shadow:0 6px 24px -6px color-mix(in srgb,var(--mode) 70%,transparent);}
+  button.primary:hover{filter:brightness(1.07);background:var(--mode);}
+  button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--mode);outline-offset:2px;}
+  input[type=range]{accent-color:var(--mode);width:100%;margin:0;}
+
+  /* timer */
+  .timer{width:min(430px,100%);border-radius:28px;padding:20px 22px 18px;text-align:center;}
+  .tabs{display:flex;gap:4px;padding:4px;border-radius:14px;background:rgba(0,0,0,.25);}
+  .tabs button{flex:1 1 auto;padding:8px 8px;border:0;background:transparent;color:var(--ink-soft);border-radius:10px;}
+  .tabs button:hover{color:var(--ink);background:rgba(255,255,255,.06);}
+  .tabs button[aria-pressed=true]{color:#1a1222;background:var(--mode);}
+  .ring{position:relative;width:min(250px,68vw,27vh);min-width:170px;aspect-ratio:1;margin:14px auto 4px;}
+  .ring svg{width:100%;height:100%;transform:rotate(-90deg);overflow:visible;}
+  .ring circle{fill:none;stroke-width:5;}
+  .ring .track{stroke:rgba(255,255,255,0.09);}
+  .ring .bar{stroke:var(--mode);stroke-linecap:round;transition:stroke-dashoffset .3s linear,stroke 1s ease;
+    filter:drop-shadow(0 0 5px var(--mode));}
+  .ring .inner{position:absolute;inset:0;display:grid;place-content:center;text-align:center;}
+  .ring .time{font-weight:800;font-size:clamp(46px,7.5vh,64px);letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1;
+    text-shadow:0 0 34px color-mix(in srgb,var(--mode) 45%,transparent);}
+  .ring .label{color:var(--ink-soft);font-size:13px;margin-top:8px;}
+  .t-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px;}
+  .t-actions .primary{min-width:140px;}
+  .dots{display:flex;justify-content:center;align-items:center;gap:6px;margin-top:14px;font-size:12px;color:var(--ink-soft);}
+  .dots i{width:8px;height:8px;border-radius:50%;border:1px solid var(--glass-border-hover);}
+  .dots i.on{background:var(--mode);border-color:var(--mode);box-shadow:0 0 8px var(--mode);}
+  .dots span{margin-left:4px;}
+  details{margin-top:14px;border-top:1px solid var(--glass-border);padding-top:12px;text-align:left;}
+  summary{cursor:pointer;color:var(--ink-soft);font-size:13px;text-align:center;list-style-position:inside;}
+  .settings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px;}
+  .settings label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--ink-soft);}
+  .settings input[type=number],.settings select{background:rgba(0,0,0,0.28);border:1px solid var(--glass-border);border-radius:9px;
+    color:var(--ink);font:600 14px 'Manrope',sans-serif;padding:7px 9px;width:100%;}
+  .settings select option{background:#14121f;color:var(--ink);}
+  .settings .full{grid-column:1/-1;}
+  .settings .check{flex-direction:row;align-items:center;gap:10px;font-size:14px;color:var(--ink);grid-column:1/-1;cursor:pointer;}
+  .settings .check input{accent-color:var(--mode);margin:0;}
+
+  /* player dock */
+  .dock{width:min(1100px,calc(100% - 32px));margin:0 auto 12px;border-radius:22px;padding:14px 20px 16px;
+    display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:12px 20px;}
+  .np{min-width:0;}
+  .np-kicker{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;display:flex;align-items:center;white-space:nowrap;overflow:hidden;}
+  .np-title{font-family:'Fraunces',Georgia,serif;font-weight:500;font-size:clamp(18px,2vw,22px);line-height:1.2;margin:4px 0 0;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .np-sub{color:var(--ink-soft);font-size:12px;margin-top:3px;}
+  .eq{display:inline-flex;gap:2px;align-items:flex-end;height:11px;margin-right:7px;}
+  .eq i{width:3px;height:30%;background:var(--mode);border-radius:1px;}
+  body.is-playing .eq i{animation:eq 1s ease-in-out infinite;}
+  .eq i:nth-child(2){animation-delay:-.4s !important;} .eq i:nth-child(3){animation-delay:-.7s !important;}
+  @keyframes eq{0%,100%{height:30%;}50%{height:100%;}}
+  .controls{display:flex;align-items:center;gap:12px;}
+  .icon-btn{width:42px;height:42px;padding:0;display:inline-grid;place-items:center;border-radius:50%;}
+  .play-btn{width:56px;height:56px;padding:0;display:inline-grid;place-items:center;border-radius:50%;
+    color:#1a1222;background:var(--ink);border-color:var(--ink);box-shadow:0 0 0 6px rgba(255,255,255,.06),0 8px 26px -8px rgba(255,255,255,.5);}
+  .play-btn:hover{background:#fff;border-color:#fff;}
+  .vol{display:flex;align-items:center;gap:8px;justify-self:end;width:min(200px,100%);color:var(--ink-soft);}
+  .vol-note{justify-self:end;font-size:12px;color:var(--ink-faint);}
+  .seek{grid-column:1/-1;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--ink-soft);font-variant-numeric:tabular-nums;}
+  .seek span{flex:none;min-width:34px;}
+  .seek span:last-child{text-align:right;}
+  #playErr{grid-column:1/-1;}
+  .err{padding:10px 12px;border-radius:10px;border:1px solid rgba(242,123,123,.4);background:rgba(242,123,123,.1);color:#f6bcbc;font-size:13px;}
+
+  /* background sounds */
+  .amb{width:min(1100px,calc(100% - 32px));margin:0 auto 22px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;}
+  .amb label{display:grid;grid-template-columns:auto auto minmax(0,1fr);align-items:center;gap:10px;padding:12px 16px;border-radius:16px;cursor:pointer;
+    transition:border-color .3s ease;}
+  .amb label b{font-size:13px;font-weight:600;}
+  .amb label svg{color:var(--ink-faint);transition:color .3s ease;}
+  .amb label.on{border-color:color-mix(in srgb,var(--mode) 45%,transparent);}
+  .amb label.on svg{color:var(--mode);}
+
+  /* below the fold */
+  .lower{position:relative;z-index:1;width:min(1100px,calc(100% - 32px));margin:0 auto;padding:8px 0 80px;
+    display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:16px;align-items:start;}
+  .panel{border-radius:20px;padding:20px 22px;background:var(--glass-strong);}
+  h2{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);margin:0 0 14px;font-weight:600;}
+  .queue{list-style:none;margin:0;padding:0;display:grid;gap:6px;}
+  .queue button{width:100%;display:flex;justify-content:space-between;gap:10px;text-align:left;font-weight:600;background:rgba(255,255,255,0.03);}
+  .queue button span:last-child{color:var(--ink-faint);font-variant-numeric:tabular-nums;font-weight:400;}
+  .about p{margin:0 0 10px;color:var(--ink-soft);font-size:14px;line-height:1.65;}
+  .about p:last-child{margin:0;font-size:12px;color:var(--ink-faint);}
+  .about kbd{font:600 11px ui-monospace,Consolas,monospace;padding:1px 5px;border:1px solid var(--glass-border);border-radius:4px;color:var(--ink-soft);}
+
+  @media (max-width:760px){
+    header{padding:14px 16px;}
+    .dock{grid-template-columns:minmax(0,1fr) auto;padding:14px 16px;}
+    .vol,.vol-note{grid-column:1/-1;justify-self:stretch;width:auto;}
+    .amb{grid-template-columns:1fr;}
+    .lower{grid-template-columns:1fr;}
+  }
+  @media (max-width:420px){
+    header .onair{display:none;}
+    .controls{gap:8px;}
+    .icon-btn{width:38px;height:38px;}
+    .play-btn{width:50px;height:50px;}
+  }
+  .hide{display:none !important;}
+  @media (prefers-reduced-motion:no-preference){button{transition:border-color .2s ease,background .4s ease,color .4s ease;}}
+  @media (prefers-reduced-motion:reduce){
+    .fire,.hum,.city .tw{animation:none;}
+    body.is-playing .eq i{animation:none;height:70%;}
+  }
+</style>
+</head>
+<body>
+<div class="scene" aria-hidden="true">
+  <div class="sky"></div>
+  <svg class="stars" id="stars" preserveAspectRatio="none"></svg>
+  <div class="moon"></div>
+  <div class="hum"></div>
+  <svg class="city" id="city" viewBox="0 0 1600 400" preserveAspectRatio="xMidYMax slice"></svg>
+  <div class="lamp"></div>
+  <div class="fire"></div>
+  <canvas id="rainCv"></canvas>
+  <div class="frame"></div>
+</div>
+
+<div class="stage">
+  <header>
+    <span class="badge"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 14v-2a9 9 0 0 1 18 0v2"/><rect x="2" y="14" width="5" height="7" rx="2"/><rect x="17" y="14" width="5" height="7" rx="2"/></svg></span>
+    <span class="name">Custombiztool Focus Radio</span>
+    <span class="onair">On air</span>
+    <a href="https://custombiztools.online">All tools</a>
+  </header>
+
+  <main class="center">
+    <h1>Music to work to, with a timer that keeps you honest.</h1>
+
+    <section class="timer glass" aria-label="Focus timer">
+      <div class="tabs" role="group" aria-label="Timer mode">
+        <button data-mode="focus" aria-pressed="true">Focus</button>
+        <button data-mode="short" aria-pressed="false">Short break</button>
+        <button data-mode="long" aria-pressed="false">Long break</button>
+      </div>
+      <div class="ring">
+        <svg viewBox="0 0 120 120" aria-hidden="true"><circle class="track" cx="60" cy="60" r="54"/><circle class="bar" id="ringBar" cx="60" cy="60" r="54"/></svg>
+        <div class="inner"><div class="time" id="tTime" role="timer" aria-live="off">25:00</div><div class="label" id="tLabel">Ready to focus</div></div>
+      </div>
+      <div class="t-actions">
+        <button class="primary" id="btnTimer">Start focus</button>
+        <button id="btnReset">Reset</button>
+        <button id="btnSkip">Skip</button>
+      </div>
+      <div class="dots" id="dots" aria-label="Sessions until long break"></div>
+      <details>
+        <summary>Timer settings</summary>
+        <div class="settings">
+          <label>Focus (minutes)<input type="number" id="sFocus" min="1" max="180" value="25"></label>
+          <label>Short break<input type="number" id="sShort" min="1" max="60" value="5"></label>
+          <label>Long break<input type="number" id="sLong" min="1" max="90" value="15"></label>
+          <label>Long break every<input type="number" id="sEvery" min="2" max="12" value="4"></label>
+          <label class="full">During breaks, the music should
+            <select id="sBreak">
+              <option value="lower">Get quieter</option>
+              <option value="pause">Pause</option>
+              <option value="keep">Keep playing as is</option>
+            </select>
+          </label>
+          <label class="check"><input type="checkbox" id="sAuto" checked> Start the next session automatically</label>
+          <label class="check"><input type="checkbox" id="sMusic" checked> Start the music when a focus session starts</label>
+          <label class="check"><input type="checkbox" id="sChime" checked> Soft chime when a session ends</label>
+        </div>
+      </details>
+    </section>
+  </main>
+
+  <section class="dock glass" aria-label="Music player">
+    <div class="np">
+      <div class="np-kicker"><span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>Now playing &middot; Focus Mix</div>
+      <p class="np-title" id="npTitle">&nbsp;</p>
+      <div class="np-sub" id="npSub">Original track</div>
+    </div>
+    <div class="controls">
+      <button class="icon-btn" id="btnPrev" aria-label="Previous track"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
+      <button class="play-btn" id="btnPlay" aria-label="Play"><svg id="icoPlay" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4v16l13-8z"/></svg><svg id="icoPause" class="hide" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg></button>
+      <button class="icon-btn" id="btnNext" aria-label="Next track"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg></button>
+    </div>
+    <label class="vol" id="volWrap"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg><input type="range" id="vol" min="0" max="100" value="80" aria-label="Music volume"></label>
+    <span class="vol-note hide" id="volNote">Use your device's volume buttons</span>
+    <div class="seek">
+      <span id="tCur">0:00</span>
+      <input type="range" id="seek" min="0" max="1000" value="0" aria-label="Seek">
+      <span id="tDur">0:00</span>
+    </div>
+    <div id="playErr"></div>
+  </section>
+
+  <section class="amb" aria-label="Background sounds">
+    <label class="glass" id="ambRainL"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 15.5A4.5 4.5 0 0 0 17.5 7 6 6 0 0 0 6 9a4 4 0 0 0 0 8"/><path d="M8 19v2M12 17v4M16 19v2"/></svg><b>Rain</b><input type="range" id="ambRain" min="0" max="100" value="0" aria-label="Rain volume"></label>
+    <label class="glass" id="ambFireL"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22c4 0 7-2.7 7-7 0-4-3-6.5-4-10-2 2-3 4-3 6-1-1-2-2-2-4-2 2-5 5-5 8 0 4.3 3 7 7 7z"/></svg><b>Fireplace</b><input type="range" id="ambFire" min="0" max="100" value="0" aria-label="Fireplace volume"></label>
+    <label class="glass" id="ambBrownL"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12c2-4 4-4 6 0s4 4 6 0 4-4 6 0"/></svg><b>Deep hum</b><input type="range" id="ambBrown" min="0" max="100" value="0" aria-label="Deep hum volume"></label>
+  </section>
+</div>
+
+<div class="lower">
+  <section class="panel glass" aria-label="Up next">
+    <h2>Up next</h2>
+    <ol class="queue" id="queue"></ol>
+  </section>
+  <section class="panel glass about" aria-label="About Custombiztool Focus Radio">
+    <h2>How it works</h2>
+    <p>Press play, start a focus session, and get to work. The music lowers itself when it is time for a break and comes back when you do. Free, no signup, nothing to install.</p>
+    <p>All music on Custombiztool Focus Radio is original. Shortcuts: <kbd>Space</kbd> play or pause music, <kbd>N</kbd> next track, <kbd>T</kbd> start or pause the timer. The timer keeps time in a background tab, and the countdown shows in the tab title. Your settings are remembered on this device.</p>
+  </section>
+</div>
+
+<audio id="au" preload="metadata"></audio>
+
+<script>
+(function(){
+  'use strict';
+  var TRACKS = [
+    {file:'tracks/cala-salada-sunrise.mp3', title:'Cala Salada Sunrise', dur:182},
+    {file:'tracks/quarterly-horizon.mp3',   title:'Quarterly Horizon',   dur:178},
+    {file:'tracks/slow-coffee-morning.mp3', title:'Slow Coffee Morning', dur:176}
+  ];
+  var STATION = 'Focus Mix';
+  var STORE = 'focusRadio.v1';
+  var BREAK_DUCK = 0.25;
+
+  var $ = function(id){ return document.getElementById(id); };
+  var au = $('au');
+
+  // ---- saved settings ----
+  var saved = {};
+  try { saved = JSON.parse(localStorage.getItem(STORE) || '{}') || {}; } catch(e) { saved = {}; }
+  function save(){
+    try { localStorage.setItem(STORE, JSON.stringify(saved)); } catch(e) {}
+  }
+
+  function fmt(sec){
+    sec = Math.max(0, Math.round(sec || 0));
+    return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
+  }
+
+  // iPhone Safari ignores audio.volume; detect it and fall back to device buttons.
+  var VOL_OK = (function(){ var a = document.createElement('audio'); a.volume = 0.5; return a.volume === 0.5; })();
+
+  // ================= SCENE =================
+  var REDUCED = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // seeded so the skyline is the same on every visit
+  function rng(seed){ return function(){ seed = seed * 16807 % 2147483647; return (seed - 1) / 2147483646; }; }
+
+  (function buildSky(){
+    var r = rng(7), s = '';
+    for (var i = 0; i < 110; i++) {
+      s += '<circle cx="' + (r() * 100).toFixed(2) + '%" cy="' + (r() * 100).toFixed(2) + '%" r="' + (0.4 + r() * 0.9).toFixed(2) +
+        '" opacity="' + (0.15 + r() * 0.6).toFixed(2) + '"/>';
+    }
+    $('stars').innerHTML = s;
+
+    r = rng(42); s = '';
+    var twinkles = 0;
+    function row(color, minH, maxH, lit, glow){
+      for (var x = -20; x < 1620;) {
+        var w = 46 + r() * 84, h = minH + r() * (maxH - minH), top = 400 - h;
+        s += '<rect x="' + x.toFixed(1) + '" y="' + top.toFixed(1) + '" width="' + w.toFixed(1) + '" height="' + h.toFixed(1) + '" fill="' + color + '"/>';
+        if (r() < 0.25) s += '<rect x="' + (x + w / 2 - 1).toFixed(1) + '" y="' + (top - 18).toFixed(1) + '" width="2" height="18" fill="' + color + '"/>';
+        for (var wy = top + 12; wy < 392; wy += 15) {
+          for (var wx = x + 8; wx < x + w - 10; wx += 12) {
+            if (r() >= lit) continue;
+            var cls = '';
+            if (twinkles < 18 && r() < 0.06) { cls = ' class="tw" style="animation-delay:-' + (r() * 6).toFixed(1) + 's"'; twinkles++; }
+            s += '<rect' + cls + ' x="' + wx.toFixed(1) + '" y="' + wy.toFixed(1) + '" width="5" height="8" fill="' + glow +
+              '" opacity="' + (0.35 + r() * 0.55).toFixed(2) + '"/>';
+          }
+        }
+        x += w + r() * 6;
+      }
+    }
+    row('#161a38', 150, 330, 0.08, '#9fb4ff');
+    row('#0a0b19', 70, 240, 0.2, '#ffcf8a');
+    $('city').innerHTML = s;
+  })();
+
+  // rain on the window: streaks behind the glass, drops sliding on it
+  var rainLvl = 0;
+  var rain = (function(){
+    var cv = $('rainCv'), g = cv.getContext('2d'), W = 0, H = 0, streaks = [], drops = [], last = 0;
+    function resize(){
+      // canvas is CSS-stretched; capped resolution keeps it cheap on weak GPUs
+      W = cv.width = Math.min(window.innerWidth, 1600);
+      H = cv.height = Math.min(window.innerHeight, 1000);
+      streaks = []; drops = [];
+      draw(false);
+    }
+    function streak(top){ return { x: Math.random() * (W + 200) - 100, y: top ? -40 : Math.random() * H, l: 10 + Math.random() * 24, v: 9 + Math.random() * 10 }; }
+    function drop(top){ return { x: Math.random() * W, y: top ? -10 : Math.random() * H, r: 1.4 + Math.random() * 3.4, v: 0, hold: 40 + Math.random() * 500 }; }
+    function draw(move){
+      // a light drizzle is always there; the Rain slider makes it pour
+      var k = 0.18 + 0.82 * rainLvl;
+      var ns = Math.round(260 * k), nd = Math.round(70 * k);
+      while (streaks.length < ns) streaks.push(streak(move));
+      streaks.length = ns;
+      while (drops.length < nd) drops.push(drop(move));
+      drops.length = nd;
+
+      g.clearRect(0, 0, W, H);
+      g.strokeStyle = 'rgba(190,205,255,0.2)'; g.lineWidth = 1; g.beginPath();
+      streaks.forEach(function(p){
+        g.moveTo(p.x, p.y); g.lineTo(p.x - p.l * 0.14, p.y + p.l);
+        if (move) {
+          p.y += p.v; p.x -= p.v * 0.14;
+          if (p.y > H) { p.y = -p.l; p.x = Math.random() * (W + 200) - 100; }
+        }
+      });
+      g.stroke();
+
+      drops.forEach(function(d){
+        if (move) {
+          if (d.hold > 0) d.hold--;
+          else {
+            d.v = Math.min(d.v + 0.06, 2.4); d.y += d.v;
+            if (Math.random() < 0.01) { d.hold = 20 + Math.random() * 120; d.v = 0; }
+            if (d.y > H + 10) { var n = drop(true); d.x = n.x; d.y = n.y; d.r = n.r; d.hold = n.hold; d.v = 0; }
+          }
+        }
+        g.beginPath(); g.arc(d.x, d.y, d.r, 0, 6.283);
+        g.fillStyle = 'rgba(200,215,255,0.09)'; g.fill();
+        g.strokeStyle = 'rgba(255,255,255,0.2)'; g.stroke();
+        g.beginPath(); g.arc(d.x - d.r * 0.35, d.y - d.r * 0.35, d.r * 0.3, 0, 6.283);
+        g.fillStyle = 'rgba(255,255,255,0.45)'; g.fill();
+      });
+    }
+    function loop(t){
+      requestAnimationFrame(loop);
+      if (t - last < 33) return; // ~30fps is plenty for rain
+      last = t;
+      draw(true);
+    }
+    window.addEventListener('resize', resize);
+    resize();
+    if (!REDUCED) requestAnimationFrame(loop);
+    return { redraw: function(){ if (REDUCED) draw(false); } };
+  })();
+
+  var SCENE_VAR = { rain: '--rain', fire: '--fire', brown: '--hum' };
+  function setScene(name, level){
+    document.documentElement.style.setProperty(SCENE_VAR[name], level);
+    if (name === 'rain') { rainLvl = level; rain.redraw(); }
+  }
+
+  // ================= MUSIC =================
+  var order = [], pos = 0;
+  function shuffledRound(avoid){
+    var r = TRACKS.map(function(_, i){ return i; });
+    for (var i = r.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = r[i]; r[i] = r[j]; r[j] = t; }
+    if (r.length > 1 && r[0] === avoid) { var k = 1 + Math.floor(Math.random() * (r.length - 1)); var s = r[0]; r[0] = r[k]; r[k] = s; }
+    return r;
+  }
+  function ensureAhead(){
+    while (order.length - pos < TRACKS.length + 1) order = order.concat(shuffledRound(order[order.length - 1]));
+  }
+  ensureAhead();
+
+  var userVol = typeof saved.vol === 'number' ? saved.vol : 0.8;
+  var duck = 1, fadeTimer = 0;
+  function targetVol(){ return userVol * userVol * duck; }
+  function fadeTo(target, ms){
+    if (!VOL_OK) return;
+    clearInterval(fadeTimer);
+    var from = au.volume, t0 = Date.now();
+    if (!ms) { au.volume = target; return; }
+    // setInterval, not rAF, so fades still finish in a background tab
+    fadeTimer = setInterval(function(){
+      var k = Math.min(1, (Date.now() - t0) / ms);
+      au.volume = Math.max(0, Math.min(1, from + (target - from) * k));
+      if (k >= 1) clearInterval(fadeTimer);
+    }, 40);
+  }
+
+  function current(){ return TRACKS[order[pos]]; }
+  function load(autoplay){
+    var t = current();
+    au.src = t.file;
+    $('npTitle').textContent = t.title;
+    $('npSub').textContent = 'Original track · ' + fmt(t.dur);
+    $('tDur').textContent = fmt(t.dur);
+    $('tCur').textContent = '0:00';
+    $('seek').value = 0;
+    $('playErr').innerHTML = '';
+    renderQueue();
+    setMeta();
+    if (autoplay) play();
+  }
+  function play(){
+    ensureCtx();
+    if (VOL_OK) au.volume = targetVol();
+    var p = au.play();
+    if (p && p.catch) p.catch(function(){});
+  }
+  function pause(){ au.pause(); }
+  function toggle(){ if (au.paused) play(); else pause(); }
+  function next(){ pos++; ensureAhead(); load(true); }
+  function prev(){
+    if (au.currentTime > 3 || pos === 0) { au.currentTime = 0; play(); return; }
+    pos--; load(true);
+  }
+
+  function renderQueue(){
+    var q = $('queue'); q.innerHTML = '';
+    order.slice(pos + 1, pos + 1 + Math.min(3, TRACKS.length - 1)).forEach(function(idx, n){
+      var t = TRACKS[idx];
+      var li = document.createElement('li');
+      var b = document.createElement('button');
+      b.innerHTML = '<span></span><span></span>';
+      b.firstChild.textContent = t.title;
+      b.lastChild.textContent = fmt(t.dur);
+      b.setAttribute('aria-label', 'Play ' + t.title);
+      b.addEventListener('click', function(){ pos = pos + 1 + n; ensureAhead(); load(true); });
+      li.appendChild(b); q.appendChild(li);
+    });
+  }
+
+  function setMeta(){
+    if (!('mediaSession' in navigator)) return;
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({ title: current().title, artist: 'Custombiztool Focus Radio', album: STATION });
+    } catch(e) {}
+  }
+  if ('mediaSession' in navigator) {
+    var ms = navigator.mediaSession;
+    [['play', play], ['pause', pause], ['nexttrack', next], ['previoustrack', prev],
+     ['seekto', function(d){ if (d && typeof d.seekTime === 'number') au.currentTime = d.seekTime; }]]
+      .forEach(function(h){ try { ms.setActionHandler(h[0], h[1]); } catch(e) {} });
+  }
+
+  var seeking = false;
+  au.addEventListener('timeupdate', function(){
+    var d = au.duration || current().dur;
+    if (!seeking && d) $('seek').value = Math.round(au.currentTime / d * 1000);
+    $('tCur').textContent = fmt(au.currentTime);
+  });
+  au.addEventListener('loadedmetadata', function(){ if (au.duration) $('tDur').textContent = fmt(au.duration); });
+  au.addEventListener('ended', next);
+  au.addEventListener('play', syncPlayUI);
+  au.addEventListener('pause', syncPlayUI);
+  au.addEventListener('error', function(){
+    if (!au.src) return;
+    $('playErr').innerHTML = '<div class="err">Couldn’t load “' + current().title + '”. Skipping to the next track.</div>';
+    setTimeout(next, 1500);
+  });
+  function syncPlayUI(){
+    var playing = !au.paused;
+    document.body.classList.toggle('is-playing', playing);
+    $('icoPlay').classList.toggle('hide', playing);
+    $('icoPause').classList.toggle('hide', !playing);
+    $('btnPlay').setAttribute('aria-label', playing ? 'Pause' : 'Play');
+    if ('mediaSession' in navigator) navigator.mediaSession.playbackState = playing ? 'playing' : 'paused';
+  }
+
+  $('seek').addEventListener('input', function(){ seeking = true; });
+  $('seek').addEventListener('change', function(){
+    var d = au.duration || current().dur;
+    au.currentTime = this.value / 1000 * d;
+    seeking = false;
+  });
+  $('btnPlay').addEventListener('click', toggle);
+  $('btnNext').addEventListener('click', next);
+  $('btnPrev').addEventListener('click', prev);
+
+  if (VOL_OK) {
+    $('vol').value = Math.round(userVol * 100);
+    $('vol').addEventListener('input', function(){
+      userVol = this.value / 100; saved.vol = userVol; save();
+      clearInterval(fadeTimer); au.volume = targetVol();
+    });
+  } else {
+    $('volWrap').classList.add('hide');
+    $('volNote').classList.remove('hide');
+  }
+
+  // ================= AMBIENT =================
+  var ctx = null;
+  function ensureCtx(){
+    if (!ctx) {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      ctx = new AC();
+    }
+    if (ctx.state === 'suspended') ctx.resume();
+    return ctx;
+  }
+
+  function noiseBuffer(kind){
+    var sr = ctx.sampleRate, len = sr * 8;
+    var buf = ctx.createBuffer(2, len, sr);
+    for (var ch = 0; ch < 2; ch++) {
+      var d = buf.getChannelData(ch);
+      var b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0, last = 0;
+      for (var i = 0; i < len; i++) {
+        var w = Math.random() * 2 - 1;
+        if (kind === 'pink') {
+          b0 = 0.99886 * b0 + w * 0.0555179; b1 = 0.99332 * b1 + w * 0.0750759;
+          b2 = 0.96900 * b2 + w * 0.1538520; b3 = 0.86650 * b3 + w * 0.3104856;
+          b4 = 0.55000 * b4 + w * 0.5329522; b5 = -0.7616 * b5 - w * 0.0168980;
+          d[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362) * 0.11; b6 = w * 0.115926;
+        } else {
+          last = (last + 0.02 * w) / 1.02;
+          d[i] = last * 3.5;
+        }
+      }
+      if (kind === 'fire') {
+        for (var c = 0; c < 8 * 7; c++) {
+          var at = Math.floor(Math.random() * (len - sr * 0.03));
+          var amp = (0.2 + Math.random() * 0.8) * (Math.random() < 0.15 ? 1.6 : 0.6);
+          var dec = sr * (0.002 + Math.random() * 0.012);
+          for (var k = 0; k < dec * 4; k++) d[at + k] += (Math.random() * 2 - 1) * amp * Math.exp(-k / dec);
+        }
+      }
+      // blend the tail into the head so the 8s loop has no click
+      var x = Math.floor(sr * 0.25);
+      for (var j = 0; j < x; j++) { var m = j / x; d[len - x + j] = d[len - x + j] * (1 - m) + d[j] * m; }
+    }
+    return buf;
+  }
+
+  var LAYERS = {
+    rain:  { input: 'ambRain',  kind: 'pink',  base: 0.55, chain: [['highpass', 400], ['lowpass', 7000]] },
+    fire:  { input: 'ambFire',  kind: 'fire',  base: 0.5,  chain: [['lowpass', 3800]] },
+    brown: { input: 'ambBrown', kind: 'brown', base: 0.6,  chain: [['lowpass', 700]] }
+  };
+  saved.amb = saved.amb || {};
+
+  function setLayer(name, level){
+    var L = LAYERS[name];
+    $(L.input + 'L').classList.toggle('on', level > 0);
+    if (level <= 0) {
+      if (L.gain) {
+        L.gain.gain.setTargetAtTime(0, ctx.currentTime, 0.08);
+        var src = L.src; L.src = null; L.gain = null;
+        setTimeout(function(){ try { src.stop(); } catch(e) {} }, 500);
+      }
+      return;
+    }
+    if (!ensureCtx()) return;
+    if (!L.src) {
+      L.buf = L.buf || noiseBuffer(L.kind);
+      L.src = ctx.createBufferSource(); L.src.buffer = L.buf; L.src.loop = true;
+      L.gain = ctx.createGain(); L.gain.gain.value = 0;
+      var node = L.src;
+      L.chain.forEach(function(f){ var bq = ctx.createBiquadFilter(); bq.type = f[0]; bq.frequency.value = f[1]; node.connect(bq); node = bq; });
+      node.connect(L.gain); L.gain.connect(ctx.destination);
+      L.src.start();
+    }
+    L.gain.gain.setTargetAtTime(level * level * L.base, ctx.currentTime, 0.08);
+  }
+
+  Object.keys(LAYERS).forEach(function(name){
+    var input = $(LAYERS[name].input);
+    var v0 = saved.amb[name] || 0;
+    input.value = Math.round(v0 * 100);
+    // the room shows saved levels right away; the sound waits for a click
+    setScene(name, v0);
+    $(LAYERS[name].input + 'L').classList.toggle('on', v0 > 0);
+    input.addEventListener('input', function(){
+      var v = this.value / 100;
+      saved.amb[name] = v; save();
+      setLayer(name, v);
+      setScene(name, v);
+    });
+  });
+  // browsers block audio until a click, so resume saved layers on the first one
+  document.addEventListener('pointerdown', function first(){
+    document.removeEventListener('pointerdown', first);
+    Object.keys(LAYERS).forEach(function(n){ if (saved.amb[n] > 0) setLayer(n, saved.amb[n]); });
+  });
+
+  function chime(){
+    if (!$('sChime').checked || !ensureCtx()) return;
+    [[659.25, 0], [987.77, 0.18]].forEach(function(n){
+      var o = ctx.createOscillator(), g = ctx.createGain(), t = ctx.currentTime + n[1];
+      o.type = 'sine'; o.frequency.value = n[0];
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.12, t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 2.2);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(t); o.stop(t + 2.3);
+    });
+  }
+
+  // ================= TIMER =================
+  var MODES = {
+    focus: { input: 'sFocus', label: 'Focus', ready: 'Ready to focus', run: 'Focusing' },
+    short: { input: 'sShort', label: 'Short break', ready: 'Short break', run: 'On a short break' },
+    long:  { input: 'sLong',  label: 'Long break', ready: 'Long break', run: 'On a long break' }
+  };
+  var SETTINGS = ['sFocus', 'sShort', 'sLong', 'sEvery', 'sBreak', 'sAuto', 'sMusic', 'sChime'];
+  saved.timer = saved.timer || {};
+  SETTINGS.forEach(function(id){
+    var el = $(id), v = saved.timer[id];
+    if (v !== undefined) { if (el.type === 'checkbox') el.checked = !!v; else el.value = v; }
+    el.addEventListener('change', function(){
+      if (el.type === 'number') {
+        var n = Math.round(+el.value);
+        el.value = Math.max(+el.min, Math.min(+el.max, isNaN(n) ? +el.defaultValue : n));
+      }
+      saved.timer[id] = el.type === 'checkbox' ? el.checked : el.value; save();
+      if (!running && el.type === 'number' && id !== 'sEvery') setMode(mode);
+      renderDots();
+    });
+  });
+
+  var mode = 'focus', running = false, endAt = 0, remaining = 0, total = 0, done = 0;
+  var pausedByBreak = false;
+  var CIRC = 2 * Math.PI * 54;
+  $('ringBar').style.strokeDasharray = CIRC;
+
+  function minutes(m){ return Math.max(1, +$(MODES[m].input).value || 1) * 60000; }
+  function every(){ return Math.max(2, +$('sEvery').value || 4); }
+
+  function setMode(m){
+    mode = m; running = false;
+    total = remaining = minutes(m);
+    document.body.classList.toggle('is-break', m !== 'focus');
+    document.querySelectorAll('.tabs button').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.mode === m)); });
+    renderTimer();
+  }
+  function start(){
+    ensureCtx();
+    running = true; endAt = Date.now() + remaining;
+    if (mode === 'focus') {
+      musicForFocus();
+      if ($('sMusic').checked && au.paused) play();
+    } else {
+      musicForBreak();
+    }
+    renderTimer();
+  }
+  function stop(){ running = false; remaining = Math.max(0, endAt - Date.now()); renderTimer(); }
+  function finish(skipped){
+    if (!skipped) chime();
+    var nextMode;
+    if (mode === 'focus') {
+      if (!skipped) done++;
+      nextMode = done > 0 && done % every() === 0 && !skipped ? 'long' : 'short';
+    }
+    else nextMode = 'focus';
+    setMode(nextMode);
+    if ($('sAuto').checked) start();
+    else if (nextMode === 'focus') musicForFocus();
+    else musicForBreak();
+  }
+
+  function musicForBreak(){
+    var how = $('sBreak').value;
+    if (how === 'lower' && !VOL_OK) how = 'pause';
+    if (how === 'lower') { duck = BREAK_DUCK; fadeTo(targetVol(), 2500); }
+    else if (how === 'pause' && !au.paused) { pausedByBreak = true; fadeTo(0, 1500); setTimeout(function(){ if (pausedByBreak) pause(); }, 1500); }
+  }
+  function musicForFocus(){
+    duck = 1;
+    if (pausedByBreak) { pausedByBreak = false; if (VOL_OK) au.volume = 0; play(); }
+    fadeTo(targetVol(), 2500);
+  }
+
+  function renderTimer(){
+    var t = $('tTime'), sec = Math.ceil(remaining / 1000);
+    t.textContent = fmt(sec);
+    $('ringBar').style.strokeDashoffset = CIRC * (1 - (total ? remaining / total : 0));
+    $('tLabel').textContent = running ? MODES[mode].run : (remaining < total ? 'Paused' : MODES[mode].ready);
+    $('btnTimer').textContent = running ? 'Pause' : (remaining < total ? 'Resume' : 'Start ' + (mode === 'focus' ? 'focus' : 'break'));
+    document.title = running || remaining < total
+      ? fmt(sec) + ' · ' + MODES[mode].label + ' — Custombiztool Focus Radio'
+      : 'Custombiztool Focus Radio — Work Music & Pomodoro Timer';
+    renderDots();
+  }
+  function renderDots(){
+    var n = every(), inCycle = done % n, el = $('dots'), html = '';
+    for (var i = 0; i < n; i++) html += '<i class="' + (i < inCycle ? 'on' : '') + '"></i>';
+    el.innerHTML = html + '<span>' + done + ' focus session' + (done === 1 ? '' : 's') + ' done</span>';
+  }
+
+  setInterval(function(){
+    if (!running) return;
+    remaining = endAt - Date.now();
+    if (remaining <= 0) { remaining = 0; finish(); } else renderTimer();
+  }, 250);
+
+  $('btnTimer').addEventListener('click', function(){ if (running) stop(); else start(); });
+  $('btnReset').addEventListener('click', function(){ setMode(mode); if (mode === 'focus') musicForFocus(); });
+  $('btnSkip').addEventListener('click', function(){ finish(true); });
+  document.querySelectorAll('.tabs button').forEach(function(b){
+    b.addEventListener('click', function(){
+      setMode(b.dataset.mode);
+      if (b.dataset.mode === 'focus') musicForFocus();
+    });
+  });
+
+  // ================= KEYS =================
+  document.addEventListener('keydown', function(e){
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    var tag = (e.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'select' || tag === 'textarea') return;
+    if (e.key === ' ') { if (tag === 'button' || tag === 'summary') return; e.preventDefault(); toggle(); }
+    else if (e.key === 'n' || e.key === 'N') next();
+    else if (e.key === 't' || e.key === 'T') { if (running) stop(); else start(); }
+  });
+
+  load(false);
+  setMode('focus');
+})();
+</script>
+</body>
+</html>
