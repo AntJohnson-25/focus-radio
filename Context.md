@@ -10,9 +10,13 @@ Free "Focus Radio" for custombiztools.online: the user's own original tracks as 
 
 2026-10-22 (later): UI redesigned to the "lo-fi night room" direction the user picked from 4 options. Full-screen night window behind everything (stars, moon, seeded SVG skyline with lit windows, rain canvas). Big glowing timer in the centre, player dock + Rain/Fireplace/Hum chips at the bottom, Up next + How it works below the fold. The scene reacts: the Rain slider makes the canvas rain heavier (light drizzle always on), Fireplace = flickering orange glow, Deep hum = breathing purple glow, break mode = mint accent + teal sky tint. Features/logic/IDs unchanged. v1 kept as `index.v1-backup.html`. Screenshotted at 1366x768 and 390px (via iframe).
 
+2026-10-22: user approved the UI and said commit + push. Git repo `AntJohnson-25/focus-radio` (public, like the other tool repos; Pages on the free plan needs public). Pages = GitHub Actions (`.github/workflows/pages.yml`), enabled via `gh api`. Live at https://antjohnson-25.github.io/focus-radio/. `CNAME` file says `radio.custombiztools.online`, but the custom domain is NOT set in Pages yet because DNS doesn't exist (setting it first would redirect to a dead domain). Push with `git -c credential.helper= -c "credential.helper=!G:/GitHubCLI/bin/gh.exe auth git-credential" push` (GCM hangs). `index.v1-backup.html` is git-ignored.
+
 ## Next action
 
-User looks at the new UI (double-click `index.html`) and gives a verdict. Then the listen-test below.
+1. User adds the Namecheap CNAME record: Host `radio`, Value `antjohnson-25.github.io.`
+2. Then set the custom domain: `gh api -X PUT repos/AntJohnson-25/focus-radio/pages -f cname=radio.custombiztools.online`, wait for HTTPS, then enforce it.
+3. Add a live card to the landing page repo `app.custombiztools.online` (see the tool-launch process memory).
 
 Also: user opens `index.html` (double-click works; no server needed) and listens: play/skip tracks, ambient sliders, start a 1-minute focus session (Timer settings) to hear the chime and the music duck on the break. Then launch per the custombiztools tool-launch process (suggested subdomain `radio.custombiztools.online`).
 
