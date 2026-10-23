@@ -14,6 +14,8 @@ Free "Focus Radio" for custombiztools.online: the user's own original tracks as 
 
 2026-10-22 (evening): FULLY LIVE at https://radio.custombiztools.online. The user added the Namecheap CNAME, the custom domain is set, HTTPS is enforced (cert approved), and a live "F" card + JSON-LD entry is on custombiztools.online (landing repo d912bb2, replaced the "Coming soon" placeholder).
 
+2026-10-22 (night): added 4 tracks from Downloads (Cold Coffee On The Sill, Rain Against The Glass, Saltwater Drift, Ocean Drive Midnight). 7 tracks, ~20 min. Not committed or pushed yet.
+
 ## Next action
 
 Listen-test on iPhone at the live URL. More tracks when the user has them.
