@@ -12,11 +12,11 @@ Free "Focus Radio" for custombiztools.online: the user's own original tracks as 
 
 2026-10-22: user approved the UI and said commit + push. Git repo `AntJohnson-25/focus-radio` (public, like the other tool repos; Pages on the free plan needs public). Pages = GitHub Actions (`.github/workflows/pages.yml`), enabled via `gh api`. Live at https://antjohnson-25.github.io/focus-radio/. `CNAME` file says `radio.custombiztools.online`, but the custom domain is NOT set in Pages yet because DNS doesn't exist (setting it first would redirect to a dead domain). Push with `git -c credential.helper= -c "credential.helper=!G:/GitHubCLI/bin/gh.exe auth git-credential" push` (GCM hangs). `index.v1-backup.html` is git-ignored.
 
+2026-10-22 (evening): FULLY LIVE at https://radio.custombiztools.online. The user added the Namecheap CNAME, the custom domain is set, HTTPS is enforced (cert approved), and a live "F" card + JSON-LD entry is on custombiztools.online (landing repo d912bb2, replaced the "Coming soon" placeholder).
+
 ## Next action
 
-1. User adds the Namecheap CNAME record: Host `radio`, Value `antjohnson-25.github.io.`
-2. Then set the custom domain: `gh api -X PUT repos/AntJohnson-25/focus-radio/pages -f cname=radio.custombiztools.online`, wait for HTTPS, then enforce it.
-3. Add a live card to the landing page repo `app.custombiztools.online` (see the tool-launch process memory).
+Listen-test on iPhone at the live URL. More tracks when the user has them.
 
 Also: user opens `index.html` (double-click works; no server needed) and listens: play/skip tracks, ambient sliders, start a 1-minute focus session (Timer settings) to hear the chime and the music duck on the break. Then launch per the custombiztools tool-launch process (suggested subdomain `radio.custombiztools.online`).
 
