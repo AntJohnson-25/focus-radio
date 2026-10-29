@@ -513,7 +513,12 @@
     {file:'tracks/cold-coffee-on-the-sill.mp3', title:'Cold Coffee On The Sill', dur:172},
     {file:'tracks/rain-against-the-glass.mp3',  title:'Rain Against The Glass',  dur:178},
     {file:'tracks/saltwater-drift.mp3',         title:'Saltwater Drift',         dur:171},
-    {file:'tracks/ocean-drive-midnight.mp3',    title:'Ocean Drive Midnight',    dur:179}
+    {file:'tracks/ocean-drive-midnight.mp3',    title:'Ocean Drive Midnight',    dur:179},
+    // one theme song per scene; picking the scene plays it first
+    {file:'tracks/gridlocked-horizon.mp3',        title:'Gridlocked Horizon',        dur:178, scene:'city'},
+    {file:'tracks/table-by-the-window.mp3',       title:'Table by the Window',       dur:180, scene:'cafe'},
+    {file:'tracks/copper-sand-horizon.mp3',       title:'Copper Sand Horizon',       dur:175, scene:'beach'},
+    {file:'tracks/where-the-timber-breathes.mp3', title:'Where the Timber Breathes', dur:170, scene:'forest'}
   ];
   var STATION = 'Focus Mix';
   var STORE = 'focusRadio.v1';
@@ -710,10 +715,10 @@
   }
 
   var SCENES = {
-    city:   { el: 'scCity',   drizzle: 0.18, theme: '#070814' },
-    cafe:   { el: 'scCafe',   drizzle: 0,    theme: '#170d08' },
-    beach:  { el: 'scBeach',  drizzle: 0,    theme: '#241640' },
-    forest: { el: 'scForest', drizzle: 0,    theme: '#07121f' }
+    city:   { el: 'scCity',   drizzle: 0.18, theme: '#070814', label: 'Night city' },
+    cafe:   { el: 'scCafe',   drizzle: 0,    theme: '#170d08', label: 'Coffee shop' },
+    beach:  { el: 'scBeach',  drizzle: 0,    theme: '#241640', label: 'Beach' },
+    forest: { el: 'scForest', drizzle: 0,    theme: '#07121f', label: 'Forest cabin' }
   };
   function pickScene(name){
     if (!SCENES[name]) name = 'city';
@@ -726,7 +731,12 @@
     saved.scene = name; save();
   }
   document.querySelectorAll('.scenes button').forEach(function(b){
-    b.addEventListener('click', function(){ pickScene(b.dataset.scene); });
+    b.addEventListener('click', function(){
+      if (b.dataset.scene === document.body.dataset.scene) return;
+      pickScene(b.dataset.scene);
+      // switch to the new scene's song now if music is on, otherwise cue it
+      playTheme(b.dataset.scene, !au.paused);
+    });
   });
   // a link like radio.custombiztools.online/#scene=beach opens on that scene
   pickScene((location.hash.match(/scene=(\w+)/) || [])[1] || saved.scene);
@@ -760,12 +770,22 @@
     }, 40);
   }
 
+  // start the station on a scene's theme song, then carry on shuffling everything
+  function playTheme(scene, autoplay){
+    var idx = -1;
+    TRACKS.forEach(function(t, i){ if (t.scene === scene) idx = i; });
+    if (idx < 0) return;
+    order = [idx].concat(shuffledRound(idx)); pos = 0;
+    ensureAhead();
+    load(autoplay);
+  }
+
   function current(){ return TRACKS[order[pos]]; }
   function load(autoplay){
     var t = current();
     au.src = t.file;
     $('npTitle').textContent = t.title;
-    $('npSub').textContent = 'Original track · ' + fmt(t.dur);
+    $('npSub').textContent = (t.scene ? SCENES[t.scene].label + ' theme' : 'Original track') + ' · ' + fmt(t.dur);
     $('tDur').textContent = fmt(t.dur);
     $('tCur').textContent = '0:00';
     $('seek').value = 0;
@@ -1087,7 +1107,7 @@
     else if (e.key === 't' || e.key === 'T') { if (running) stop(); else start(); }
   });
 
-  load(false);
+  playTheme(document.body.dataset.scene, false);
   setMode('focus');
 })();
 </script>
