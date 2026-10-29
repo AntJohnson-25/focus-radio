@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Custombiztool Focus Radio &mdash; Work Music &amp; Pomodoro Timer</title>
-<meta name="description" content="Free focus music radio with a built-in Pomodoro timer. Original tracks, rain and fireplace sounds, and music that lowers itself on your breaks. Nothing to install, no signup.">
+<meta name="description" content="Free focus music radio with a built-in Pomodoro timer. Original tracks, rain and fireplace sounds, four animated scenes, and music that lowers itself on your breaks. Nothing to install, no signup.">
 <link rel="canonical" href="https://radio.custombiztools.online/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Custom Biz Tools">
@@ -29,140 +29,198 @@
 <meta name="theme-color" content="#070814">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;1,9..144,400&family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
   :root{
     --ground:#070814;
-    --glass:rgba(16,15,32,0.46);
-    --glass-strong:rgba(14,13,28,0.62);
-    --glass-border:rgba(255,255,255,0.12);
-    --glass-border-hover:rgba(255,255,255,0.28);
-    --ink:#F7F2EA;
-    --ink-soft:#BDB6CC;
-    --ink-faint:#837D98;
-    --focus:#FFB878;
+    --glass:rgba(12,10,22,0.42);
+    --glass-strong:rgba(12,10,22,0.62);
+    --glass-border:rgba(255,255,255,0.13);
+    --glass-border-hover:rgba(255,255,255,0.3);
+    --ink:#FAF6EF;
+    --ink-soft:#C9C1D6;
+    --ink-faint:#8E87A3;
+    --focus:#FF9A3D;
     --break:#84E3B6;
     --mode:var(--focus);
     --rain:0; --fire:0; --hum:0;
   }
+  body[data-scene=cafe]{ --focus:#FFB45E; }
+  body[data-scene=beach]{ --focus:#FF7E6B; }
+  body[data-scene=forest]{ --focus:#F5CD55; }
+  /* set on body too, so a scene's --focus override reaches --mode */
+  body{--mode:var(--focus);}
   body.is-break{--mode:var(--break);}
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   body{background:var(--ground);color:var(--ink);font-family:'Manrope',-apple-system,'Segoe UI',sans-serif;
     min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased;}
 
-  /* ---------- the room: night window behind everything ---------- */
+  /* ---------- scenes: one full-screen picture behind everything ---------- */
   .scene{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;}
-  .sky{position:absolute;inset:0;background:linear-gradient(180deg,#04050d 0%,#0b1029 40%,#231b42 74%,#3a2449 100%);}
-  .sky::after{content:'';position:absolute;inset:0;opacity:0;transition:opacity 4s ease;
-    background:linear-gradient(180deg,transparent 25%,rgba(70,150,150,.32) 100%);}
-  body.is-break .sky::after{opacity:1;}
+  .sc{position:absolute;inset:0;opacity:0;transition:opacity 1.2s ease;}
+  .sc.on{opacity:1;}
+  /* only the visible scene animates, so the hidden ones cost nothing */
+  .sc:not(.on), .sc:not(.on) *{animation-play-state:paused !important;}
+  .sc > svg{position:absolute;inset:0;width:100%;height:100%;}
+
+  /* night city */
+  .city-sky{position:absolute;inset:0;background:linear-gradient(180deg,#04050d 0%,#0b1029 40%,#231b42 74%,#3a2449 100%);}
   .stars{position:absolute;left:0;top:0;width:100%;height:65%;}
   .stars circle{fill:#fff;}
-  .moon{position:absolute;top:10vh;right:13vw;width:clamp(56px,9vw,110px);aspect-ratio:1;border-radius:50%;
+  .moon{position:absolute;top:12vh;right:13vw;width:clamp(56px,9vw,110px);aspect-ratio:1;border-radius:50%;
     background:radial-gradient(circle at 36% 34%,#fffaf0,#efe3c8 58%,#cdbf9f);
     box-shadow:0 0 50px 16px rgba(255,238,205,.16),0 0 170px 70px rgba(255,238,205,.07);}
-  .hum{position:absolute;inset:-15%;opacity:calc(var(--hum) * .95);transition:opacity .6s ease;
-    background:radial-gradient(ellipse at 50% 72%,rgba(150,110,255,.34),transparent 58%);}
   .city{position:absolute;left:0;bottom:0;width:100%;height:48vh;}
-  .city .tw{animation:twinkle 6s ease-in-out infinite;}
-  .lamp{position:absolute;left:-14vw;bottom:-28vh;width:62vw;height:80vh;
-    background:radial-gradient(ellipse at 42% 68%,rgba(255,186,118,.30),rgba(255,166,90,.08) 46%,transparent 70%);}
+  .tw{animation:twinkle 6s ease-in-out infinite;}
+
+  /* coffee shop */
+  .bokeh circle{animation:twinkle 5s ease-in-out infinite;}
+  .lamp{transform-box:fill-box;transform-origin:50% 0;animation:sway 7s ease-in-out infinite;}
+  .lamp:nth-of-type(2){animation-delay:-2.5s;} .lamp:nth-of-type(3){animation-delay:-5s;}
+  .steam path{fill:none;stroke:rgba(255,255,255,.35);stroke-width:5;stroke-linecap:round;
+    animation:steam 4.5s ease-in infinite;transform-box:fill-box;}
+  .steam path:nth-child(2){animation-delay:-1.5s;} .steam path:nth-child(3){animation-delay:-3s;}
+
+  /* beach sunset */
+  .shimmer rect{animation:shimmer 3.6s ease-in-out infinite;}
+  .cloud{animation:cloud 60s linear infinite alternate;}
+  .birds{animation:birds 38s linear infinite;}
+  .wave{animation:wave 7s ease-in-out infinite;}
+  .palm{transform-box:fill-box;transform-origin:50% 100%;animation:palm 9s ease-in-out infinite;}
+
+  /* forest cabin */
+  .fly{animation:fly 9s ease-in-out infinite;}
+  .fly circle{animation:blink 2.6s ease-in-out infinite;}
+  .mist{animation:mist 40s ease-in-out infinite alternate;}
+  .smoke circle{animation:smoke 6s ease-out infinite;transform-box:fill-box;transform-origin:center;}
+  .smoke circle:nth-child(2){animation-delay:-2s;} .smoke circle:nth-child(3){animation-delay:-4s;}
+
+  @keyframes twinkle{0%,100%{opacity:.85;}50%{opacity:.25;}}
+  @keyframes sway{0%,100%{transform:rotate(1.6deg);}50%{transform:rotate(-1.6deg);}}
+  @keyframes steam{0%{opacity:0;transform:translateY(10px) scaleY(.8);}30%{opacity:.9;}100%{opacity:0;transform:translateY(-60px) scaleY(1.2);}}
+  @keyframes shimmer{0%,100%{opacity:.15;transform:translateX(0);}50%{opacity:.9;transform:translateX(12px);}}
+  @keyframes cloud{from{transform:translateX(-80px);}to{transform:translateX(80px);}}
+  @keyframes birds{from{transform:translate(-300px,40px);}to{transform:translate(1900px,-60px);}}
+  @keyframes wave{0%,100%{transform:translateX(0);}50%{transform:translateX(-40px);}}
+  @keyframes palm{0%,100%{transform:rotate(-1.2deg);}50%{transform:rotate(1.4deg);}}
+  @keyframes fly{0%,100%{transform:translate(0,0);}33%{transform:translate(26px,-18px);}66%{transform:translate(-14px,-34px);}}
+  @keyframes blink{0%,100%{opacity:.1;}50%{opacity:1;}}
+  @keyframes mist{from{transform:translateX(-120px);}to{transform:translateX(120px);}}
+  @keyframes smoke{0%{opacity:0;transform:translate(0,0) scale(.6);}20%{opacity:.5;}100%{opacity:0;transform:translate(30px,-110px) scale(2.2);}}
+
+  /* layers every scene shares */
+  .hum{position:absolute;inset:-15%;opacity:calc(var(--hum) * .95);transition:opacity .6s ease;animation:breathe 8s ease-in-out infinite;
+    background:radial-gradient(ellipse at 50% 72%,rgba(150,110,255,.34),transparent 58%);}
   .fire{position:absolute;right:-12vw;bottom:-24vh;width:72vw;height:78vh;opacity:var(--fire);transition:opacity .6s ease;
     transform-origin:70% 90%;animation:flicker 2.8s ease-in-out infinite;
     background:radial-gradient(ellipse at 62% 78%,rgba(255,118,40,.75),rgba(255,82,24,.28) 42%,transparent 70%);}
+  .tint{position:absolute;inset:0;opacity:0;transition:opacity 4s ease;
+    background:linear-gradient(180deg,transparent 25%,rgba(70,150,150,.32) 100%);}
+  body.is-break .tint{opacity:1;}
   #rainCv{position:absolute;inset:0;width:100%;height:100%;}
-  .frame{position:absolute;inset:0;
-    box-shadow:inset 0 0 0 10px #04040a,inset 0 0 140px 50px rgba(0,0,0,.62);}
-  .frame::after{content:'';position:absolute;left:0;right:0;bottom:0;height:30vh;
-    background:linear-gradient(180deg,transparent,rgba(7,8,20,.72));}
-  @keyframes twinkle{0%,100%{opacity:.85;}50%{opacity:.25;}}
+  .vignette{position:absolute;inset:0;
+    background:radial-gradient(ellipse 60% 50% at 50% 42%,rgba(0,0,0,.34),transparent 70%),
+               linear-gradient(180deg,rgba(0,0,0,.35),transparent 18%,transparent 62%,rgba(5,5,12,.8));}
+  /* the sunset is the brightest scene, so it gets a darker centre behind the timer */
+  body[data-scene=beach] .vignette{
+    background:radial-gradient(ellipse 46% 44% at 50% 46%,rgba(20,8,30,.55),transparent 75%),
+               linear-gradient(180deg,rgba(0,0,0,.3),transparent 18%,transparent 62%,rgba(5,5,12,.8));}
   @keyframes flicker{0%,100%{transform:scale(1);}22%{transform:scale(1.05) translateY(-1.5%);}48%{transform:scale(.97);}71%{transform:scale(1.03) translateY(-.8%);}}
   @keyframes breathe{0%,100%{transform:scale(1);}50%{transform:scale(1.06);}}
-  .hum{animation:breathe 8s ease-in-out infinite;}
 
   /* ---------- foreground ---------- */
   .stage{position:relative;z-index:1;min-height:100vh;min-height:100svh;display:flex;flex-direction:column;}
   header{display:flex;align-items:center;gap:10px;padding:16px 24px;}
-  header .badge{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;flex:none;
-    background:color-mix(in srgb,var(--mode) 22%,transparent);color:var(--mode);border:1px solid color-mix(in srgb,var(--mode) 50%,transparent);
-    transition:color 1s ease,background 1s ease,border-color 1s ease;}
-  header .name{font-weight:800;font-size:17px;letter-spacing:-.01em;}
+  header .badge{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;flex:none;
+    background:var(--mode);color:#1a1222;box-shadow:0 6px 20px -6px var(--mode);transition:background 1s ease,box-shadow 1s ease;}
+  header .name{font-family:'Bricolage Grotesque','Manrope',sans-serif;font-weight:800;font-size:18px;letter-spacing:-.02em;white-space:nowrap;}
   header .onair{font-size:11px;font-weight:800;letter-spacing:.12em;color:var(--ink-faint);border:1px solid var(--glass-border);
     border-radius:99px;padding:3px 8px;text-transform:uppercase;transition:color .4s ease,border-color .4s ease;}
   body.is-playing header .onair{color:#ff8f8f;border-color:rgba(255,143,143,.5);}
-  header a{color:var(--ink-soft);font-size:13px;text-decoration:none;margin-left:auto;}
-  header a:hover{color:var(--ink);}
-
-  .center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:0 16px 18px;}
-  .center h1{font-family:'Fraunces',Georgia,serif;font-style:italic;font-weight:400;font-size:clamp(19px,2.4vw,25px);
-    line-height:1.3;margin:0;text-align:center;max-width:52ch;text-wrap:balance;color:#EDE6DA;text-shadow:0 2px 18px rgba(0,0,0,.6);}
+  header .all{color:var(--ink-soft);font-size:13px;font-weight:600;text-decoration:none;margin-left:auto;white-space:nowrap;}
+  header .all:hover{color:var(--ink);}
 
   .glass{background:var(--glass);border:1px solid var(--glass-border);
-    backdrop-filter:blur(20px) saturate(140%);-webkit-backdrop-filter:blur(20px) saturate(140%);
+    backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%);
     box-shadow:0 1px 0 rgba(255,255,255,0.08) inset,0 24px 50px -24px rgba(0,0,0,.8);}
 
-  button{font:600 13px 'Manrope',sans-serif;color:var(--ink);background:rgba(255,255,255,0.05);border:1px solid var(--glass-border);
-    border-radius:12px;padding:9px 14px;cursor:pointer;}
-  button:hover{border-color:var(--glass-border-hover);background:rgba(255,255,255,0.08);}
+  /* scene picker */
+  .scenes{display:flex;gap:4px;padding:4px;border-radius:999px;margin:0 auto;}
+  .scenes button{border:0;background:transparent;border-radius:999px;padding:7px 14px;color:var(--ink-soft);
+    display:inline-flex;align-items:center;gap:7px;white-space:nowrap;}
+  .scenes button:hover{color:var(--ink);background:rgba(255,255,255,.07);}
+  .scenes button[aria-pressed=true]{background:var(--ink);color:#1a1222;}
+  .scenes .sw{width:14px;height:14px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.35);}
+
+  button{font:600 13px 'Manrope',sans-serif;color:var(--ink);background:rgba(255,255,255,0.06);border:1px solid var(--glass-border);
+    border-radius:999px;padding:9px 16px;cursor:pointer;}
+  button:hover{border-color:var(--glass-border-hover);background:rgba(255,255,255,0.1);}
   button.primary{color:#1a1222;background:var(--mode);border-color:var(--mode);font-weight:800;
-    box-shadow:0 6px 24px -6px color-mix(in srgb,var(--mode) 70%,transparent);}
+    box-shadow:0 8px 28px -8px var(--mode);}
   button.primary:hover{filter:brightness(1.07);background:var(--mode);}
   button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--mode);outline-offset:2px;}
   input[type=range]{accent-color:var(--mode);width:100%;margin:0;}
 
-  /* timer */
-  .timer{width:min(430px,100%);border-radius:28px;padding:20px 22px 18px;text-align:center;}
-  .tabs{display:flex;gap:4px;padding:4px;border-radius:14px;background:rgba(0,0,0,.25);}
-  .tabs button{flex:1 1 auto;padding:8px 8px;border:0;background:transparent;color:var(--ink-soft);border-radius:10px;}
-  .tabs button:hover{color:var(--ink);background:rgba(255,255,255,.06);}
+  /* timer: big numbers straight on the scene */
+  .center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:8px 16px 20px;text-align:center;}
+  .tabs{display:flex;gap:4px;padding:4px;border-radius:999px;}
+  .tabs button{border:0;background:transparent;color:var(--ink-soft);padding:7px 14px;}
+  .tabs button:hover{color:var(--ink);background:rgba(255,255,255,.07);}
   .tabs button[aria-pressed=true]{color:#1a1222;background:var(--mode);}
-  .ring{position:relative;width:min(250px,68vw,27vh);min-width:170px;aspect-ratio:1;margin:14px auto 4px;}
-  .ring svg{width:100%;height:100%;transform:rotate(-90deg);overflow:visible;}
-  .ring circle{fill:none;stroke-width:5;}
-  .ring .track{stroke:rgba(255,255,255,0.09);}
-  .ring .bar{stroke:var(--mode);stroke-linecap:round;transition:stroke-dashoffset .3s linear,stroke 1s ease;
-    filter:drop-shadow(0 0 5px var(--mode));}
-  .ring .inner{position:absolute;inset:0;display:grid;place-content:center;text-align:center;}
-  .ring .time{font-weight:800;font-size:clamp(46px,7.5vh,64px);letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1;
-    text-shadow:0 0 34px color-mix(in srgb,var(--mode) 45%,transparent);}
-  .ring .label{color:var(--ink-soft);font-size:13px;margin-top:8px;}
-  .t-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px;}
-  .t-actions .primary{min-width:140px;}
-  .dots{display:flex;justify-content:center;align-items:center;gap:6px;margin-top:14px;font-size:12px;color:var(--ink-soft);}
+  .time{font-family:'Bricolage Grotesque','Manrope',sans-serif;font-weight:800;font-size:clamp(84px,17vw,176px);
+    letter-spacing:-.045em;line-height:.95;font-variant-numeric:tabular-nums;margin-top:14px;
+    text-shadow:0 4px 40px rgba(0,0,0,.45),0 0 70px color-mix(in srgb,var(--mode) 35%,transparent);}
+  .label{color:var(--ink-soft);font-size:14px;font-weight:600;letter-spacing:.02em;text-shadow:0 1px 10px rgba(0,0,0,.7);}
+  .progress{width:min(380px,80vw);height:5px;border-radius:99px;background:rgba(255,255,255,.14);overflow:hidden;margin:14px 0 6px;}
+  .progress i{display:block;height:100%;width:100%;background:var(--mode);border-radius:inherit;transform-origin:left;
+    box-shadow:0 0 12px var(--mode);transition:transform .3s linear,background 1s ease;}
+  .t-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:8px;}
+  .t-actions .primary{min-width:150px;padding:11px 20px;font-size:14px;}
+  .t-actions button:not(.primary){background:rgba(10,8,20,.4);}
+  .dots{display:flex;justify-content:center;align-items:center;gap:6px;margin-top:12px;font-size:12px;font-weight:600;color:var(--ink);text-shadow:0 1px 3px rgba(0,0,0,.85),0 0 14px rgba(0,0,0,.6);}
   .dots i{width:8px;height:8px;border-radius:50%;border:1px solid var(--glass-border-hover);}
   .dots i.on{background:var(--mode);border-color:var(--mode);box-shadow:0 0 8px var(--mode);}
   .dots span{margin-left:4px;}
-  details{margin-top:14px;border-top:1px solid var(--glass-border);padding-top:12px;text-align:left;}
-  summary{cursor:pointer;color:var(--ink-soft);font-size:13px;text-align:center;list-style-position:inside;}
-  .settings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px;}
+  details.tset{margin-top:10px;width:min(430px,100%);border-radius:18px;padding:0;}
+  details.tset[open]{padding:0 18px 16px;}
+  summary{cursor:pointer;color:var(--ink-soft);font-size:13px;font-weight:600;text-align:center;padding:9px 16px;list-style:none;}
+  summary::-webkit-details-marker{display:none;}
+  summary::before{content:'\2699  ';}
+  .settings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:4px;text-align:left;}
   .settings label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--ink-soft);}
-  .settings input[type=number],.settings select{background:rgba(0,0,0,0.28);border:1px solid var(--glass-border);border-radius:9px;
+  .settings input[type=number],.settings select{background:rgba(0,0,0,0.3);border:1px solid var(--glass-border);border-radius:9px;
     color:var(--ink);font:600 14px 'Manrope',sans-serif;padding:7px 9px;width:100%;}
   .settings select option{background:#14121f;color:var(--ink);}
   .settings .full{grid-column:1/-1;}
   .settings .check{flex-direction:row;align-items:center;gap:10px;font-size:14px;color:var(--ink);grid-column:1/-1;cursor:pointer;}
   .settings .check input{accent-color:var(--mode);margin:0;}
 
-  /* player dock */
-  .dock{width:min(1100px,calc(100% - 32px));margin:0 auto 12px;border-radius:22px;padding:14px 20px 16px;
-    display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:12px 20px;}
-  .np{min-width:0;}
+  /* player dock: one slim bar */
+  .dock{width:min(1000px,calc(100% - 32px));margin:0 auto 10px;border-radius:24px;padding:12px 18px 14px;
+    display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:10px 18px;}
+  .np{min-width:0;display:flex;align-items:center;gap:12px;}
+  .disc{width:46px;height:46px;border-radius:50%;flex:none;
+    background:radial-gradient(circle,#1a1222 0 16%,var(--mode) 17% 30%,#15121d 31% 100%);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.12),0 4px 14px -4px rgba(0,0,0,.6);}
+  body.is-playing .disc{animation:spin 4s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .np-text{min-width:0;}
   .np-kicker{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;display:flex;align-items:center;white-space:nowrap;overflow:hidden;}
-  .np-title{font-family:'Fraunces',Georgia,serif;font-weight:500;font-size:clamp(18px,2vw,22px);line-height:1.2;margin:4px 0 0;
+  .np-title{font-family:'Bricolage Grotesque','Manrope',sans-serif;font-weight:800;font-size:clamp(16px,1.8vw,19px);letter-spacing:-.01em;line-height:1.2;margin:3px 0 0;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .np-sub{color:var(--ink-soft);font-size:12px;margin-top:3px;}
+  .np-sub{color:var(--ink-soft);font-size:12px;margin-top:2px;}
   .eq{display:inline-flex;gap:2px;align-items:flex-end;height:11px;margin-right:7px;}
   .eq i{width:3px;height:30%;background:var(--mode);border-radius:1px;}
   body.is-playing .eq i{animation:eq 1s ease-in-out infinite;}
   .eq i:nth-child(2){animation-delay:-.4s !important;} .eq i:nth-child(3){animation-delay:-.7s !important;}
   @keyframes eq{0%,100%{height:30%;}50%{height:100%;}}
-  .controls{display:flex;align-items:center;gap:12px;}
-  .icon-btn{width:42px;height:42px;padding:0;display:inline-grid;place-items:center;border-radius:50%;}
-  .play-btn{width:56px;height:56px;padding:0;display:inline-grid;place-items:center;border-radius:50%;
-    color:#1a1222;background:var(--ink);border-color:var(--ink);box-shadow:0 0 0 6px rgba(255,255,255,.06),0 8px 26px -8px rgba(255,255,255,.5);}
+  .controls{display:flex;align-items:center;gap:10px;}
+  .icon-btn{width:40px;height:40px;padding:0;display:inline-grid;place-items:center;border-radius:50%;}
+  .play-btn{width:54px;height:54px;padding:0;display:inline-grid;place-items:center;border-radius:50%;
+    color:#1a1222;background:var(--ink);border-color:var(--ink);box-shadow:0 0 0 6px rgba(255,255,255,.07),0 8px 26px -8px rgba(255,255,255,.5);}
   .play-btn:hover{background:#fff;border-color:#fff;}
-  .vol{display:flex;align-items:center;gap:8px;justify-self:end;width:min(200px,100%);color:var(--ink-soft);}
+  .vol{display:flex;align-items:center;gap:8px;justify-self:end;width:min(180px,100%);color:var(--ink-soft);}
   .vol-note{justify-self:end;font-size:12px;color:var(--ink-faint);}
   .seek{grid-column:1/-1;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--ink-soft);font-variant-numeric:tabular-nums;}
   .seek span{flex:none;min-width:34px;}
@@ -170,115 +228,244 @@
   #playErr{grid-column:1/-1;}
   .err{padding:10px 12px;border-radius:10px;border:1px solid rgba(242,123,123,.4);background:rgba(242,123,123,.1);color:#f6bcbc;font-size:13px;}
 
-  /* background sounds */
-  .amb{width:min(1100px,calc(100% - 32px));margin:0 auto 22px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;}
-  .amb label{display:grid;grid-template-columns:auto auto minmax(0,1fr);align-items:center;gap:10px;padding:12px 16px;border-radius:16px;cursor:pointer;
+  /* background sounds: compact pills */
+  .amb{width:min(1000px,calc(100% - 32px));margin:0 auto 20px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}
+  .amb label{display:grid;grid-template-columns:auto auto minmax(0,1fr);align-items:center;gap:10px;padding:10px 16px;border-radius:999px;cursor:pointer;
     transition:border-color .3s ease;}
   .amb label b{font-size:13px;font-weight:600;}
   .amb label svg{color:var(--ink-faint);transition:color .3s ease;}
-  .amb label.on{border-color:color-mix(in srgb,var(--mode) 45%,transparent);}
+  .amb label.on{border-color:color-mix(in srgb,var(--mode) 55%,transparent);}
   .amb label.on svg{color:var(--mode);}
 
   /* below the fold */
-  .lower{position:relative;z-index:1;width:min(1100px,calc(100% - 32px));margin:0 auto;padding:8px 0 80px;
+  .lower{position:relative;z-index:1;width:min(1000px,calc(100% - 32px));margin:0 auto;padding:8px 0 80px;
     display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:16px;align-items:start;}
-  .panel{border-radius:20px;padding:20px 22px;background:var(--glass-strong);}
+  .panel{border-radius:22px;padding:20px 22px;background:var(--glass-strong);}
   h2{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);margin:0 0 14px;font-weight:600;}
   .queue{list-style:none;margin:0;padding:0;display:grid;gap:6px;}
-  .queue button{width:100%;display:flex;justify-content:space-between;gap:10px;text-align:left;font-weight:600;background:rgba(255,255,255,0.03);}
+  .queue button{width:100%;display:flex;justify-content:space-between;gap:10px;text-align:left;font-weight:600;background:rgba(255,255,255,0.04);border-radius:12px;}
   .queue button span:last-child{color:var(--ink-faint);font-variant-numeric:tabular-nums;font-weight:400;}
   .about p{margin:0 0 10px;color:var(--ink-soft);font-size:14px;line-height:1.65;}
   .about p:last-child{margin:0;font-size:12px;color:var(--ink-faint);}
   .about kbd{font:600 11px ui-monospace,Consolas,monospace;padding:1px 5px;border:1px solid var(--glass-border);border-radius:4px;color:var(--ink-soft);}
 
+  @media (max-width:900px){
+    header{flex-wrap:wrap;}
+    .scenes{order:3;width:100%;justify-content:center;}
+  }
   @media (max-width:760px){
-    header{padding:14px 16px;}
-    .dock{grid-template-columns:minmax(0,1fr) auto;padding:14px 16px;}
+    header{padding:12px 16px;}
+    .dock{grid-template-columns:minmax(0,1fr) auto;padding:12px 14px;}
     .vol,.vol-note{grid-column:1/-1;justify-self:stretch;width:auto;}
     .amb{grid-template-columns:1fr;}
     .lower{grid-template-columns:1fr;}
   }
+  @media (max-width:520px){
+    .scenes{gap:2px;}
+    .scenes button{padding:7px 10px;font-size:12px;gap:5px;}
+    .scenes .sw{display:none;}
+    .tabs button{padding:7px 10px;font-size:12px;}
+  }
   @media (max-width:420px){
     header .onair{display:none;}
-    .controls{gap:8px;}
-    .icon-btn{width:38px;height:38px;}
-    .play-btn{width:50px;height:50px;}
+    .controls{gap:6px;}
+    .icon-btn{width:36px;height:36px;}
+    .play-btn{width:48px;height:48px;}
+    .disc{display:none;}
   }
   .hide{display:none !important;}
+  .sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;}
   @media (prefers-reduced-motion:no-preference){button{transition:border-color .2s ease,background .4s ease,color .4s ease;}}
   @media (prefers-reduced-motion:reduce){
-    .fire,.hum,.city .tw{animation:none;}
+    .scene *, body.is-playing .disc{animation:none !important;}
     body.is-playing .eq i{animation:none;height:70%;}
   }
 </style>
 </head>
-<body>
+<body data-scene="city">
 <div class="scene" aria-hidden="true">
-  <div class="sky"></div>
-  <svg class="stars" id="stars" preserveAspectRatio="none"></svg>
-  <div class="moon"></div>
+  <!-- Night city -->
+  <div class="sc" id="scCity">
+    <div class="city-sky"></div>
+    <svg class="stars" id="stars" preserveAspectRatio="none"></svg>
+    <div class="moon"></div>
+    <svg class="city" id="city" viewBox="0 0 1600 400" preserveAspectRatio="xMidYMax slice"></svg>
+  </div>
+
+  <!-- Coffee shop: inside, looking out a big window at an evening street -->
+  <div class="sc" id="scCafe">
+    <svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <linearGradient id="cWall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2b1a12"/><stop offset="1" stop-color="#170d08"/></linearGradient>
+        <linearGradient id="cOut" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#172443"/><stop offset=".6" stop-color="#3a2a52"/><stop offset="1" stop-color="#5a3448"/></linearGradient>
+        <radialGradient id="cLamp"><stop offset="0" stop-color="#ffd9a0" stop-opacity=".55"/><stop offset="1" stop-color="#ffb060" stop-opacity="0"/></radialGradient>
+        <linearGradient id="cCounter" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6b4429"/><stop offset=".08" stop-color="#4a2e1b"/><stop offset="1" stop-color="#22140c"/></linearGradient>
+        <filter id="cBlur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="7"/></filter>
+      </defs>
+      <rect width="1600" height="900" fill="url(#cWall)"/>
+      <rect x="250" y="70" width="1100" height="600" rx="6" fill="url(#cOut)"/>
+      <g id="cStreet"></g>
+      <g class="bokeh" id="cBokeh" filter="url(#cBlur)"></g>
+      <g fill="none" stroke="#120905" stroke-width="22">
+        <rect x="250" y="70" width="1100" height="600" rx="6"/>
+        <path d="M800 70v600M250 330h1100"/>
+      </g>
+      <rect x="250" y="70" width="1100" height="600" fill="rgba(255,190,120,.05)"/>
+      <g class="lamp"><path d="M430 0v120" stroke="#0e0703" stroke-width="3"/><circle cx="430" cy="190" r="200" fill="url(#cLamp)"/><path d="M392 160 q38-48 76 0z" fill="#1b100a"/><ellipse cx="430" cy="162" rx="34" ry="6" fill="#ffe2b0"/></g>
+      <g class="lamp"><path d="M800 0v90" stroke="#0e0703" stroke-width="3"/><circle cx="800" cy="160" r="220" fill="url(#cLamp)"/><path d="M762 130 q38-48 76 0z" fill="#1b100a"/><ellipse cx="800" cy="132" rx="34" ry="6" fill="#ffe2b0"/></g>
+      <g class="lamp"><path d="M1170 0v120" stroke="#0e0703" stroke-width="3"/><circle cx="1170" cy="190" r="200" fill="url(#cLamp)"/><path d="M1132 160 q38-48 76 0z" fill="#1b100a"/><ellipse cx="1170" cy="162" rx="34" ry="6" fill="#ffe2b0"/></g>
+      <g fill="#0f1a12">
+        <path d="M150 700c-20-90 10-170 60-230-10 80 0 150-20 230z"/><path d="M175 700c10-110 60-170 120-200-40 70-50 140-80 200z"/>
+        <path d="M140 700c-50-60-80-120-70-190 30 60 60 110 90 190z"/>
+      </g>
+      <path d="M110 700h130l-16 80h-98z" fill="#3b2418"/>
+      <rect x="0" y="700" width="1600" height="200" fill="url(#cCounter)"/>
+      <g transform="translate(1120 600)">
+        <g class="steam"><path d="M30 20c-12-16 12-26 0-44"/><path d="M52 20c-12-16 12-26 0-44"/><path d="M74 20c-12-16 12-26 0-44"/></g>
+        <path d="M0 40h104l-10 70a14 14 0 0 1-14 12H24a14 14 0 0 1-14-12z" fill="#efe4d4"/>
+        <path d="M102 54c34 0 34 40 0 40" fill="none" stroke="#efe4d4" stroke-width="10"/>
+        <ellipse cx="52" cy="40" rx="52" ry="9" fill="#5a3420"/>
+        <ellipse cx="52" cy="128" rx="78" ry="8" fill="rgba(0,0,0,.35)"/>
+      </g>
+      <g transform="translate(330 640)">
+        <rect x="0" y="40" width="220" height="16" rx="4" fill="#26262e"/>
+        <path d="M20 40l14-110h152l14 110z" fill="#1b1b22"/>
+        <path d="M36 32l12-92h124l12 92z" fill="#2f3e5e" opacity=".9"/>
+      </g>
+    </svg>
+  </div>
+
+  <!-- Beach sunset -->
+  <div class="sc" id="scBeach">
+    <svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <linearGradient id="bSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#241640"/><stop offset=".38" stop-color="#7a2f63"/><stop offset=".62" stop-color="#e2596a"/><stop offset=".8" stop-color="#ffa060"/><stop offset="1" stop-color="#ffd28a"/></linearGradient>
+        <linearGradient id="bSea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a3b63"/><stop offset=".4" stop-color="#3f2150"/><stop offset="1" stop-color="#140c26"/></linearGradient>
+        <radialGradient id="bSun"><stop offset="0" stop-color="#fff6d6"/><stop offset=".7" stop-color="#ffcf7a"/><stop offset="1" stop-color="#ff9a55"/></radialGradient>
+        <radialGradient id="bGlow"><stop offset="0" stop-color="#ffd08a" stop-opacity=".55"/><stop offset="1" stop-color="#ff8a5a" stop-opacity="0"/></radialGradient>
+      </defs>
+      <rect width="1600" height="580" fill="url(#bSky)"/>
+      <circle cx="800" cy="580" r="420" fill="url(#bGlow)"/>
+      <g class="cloud" fill="#ff9d8a" opacity=".35"><ellipse cx="380" cy="300" rx="220" ry="16"/><ellipse cx="470" cy="330" rx="160" ry="10"/><ellipse cx="1180" cy="250" rx="260" ry="14"/><ellipse cx="1100" cy="280" rx="150" ry="9"/></g>
+      <circle cx="800" cy="575" r="130" fill="url(#bSun)"/>
+      <rect y="575" width="1600" height="325" fill="url(#bSea)"/>
+      <g class="shimmer" id="bShimmer" fill="#ffd9a0"></g>
+      <g class="wave" fill="none" stroke="rgba(255,220,200,.25)" stroke-width="3" stroke-linecap="round">
+        <path d="M-60 760c80-14 160-14 240 0s160 14 240 0 160-14 240 0 160 14 240 0 160-14 240 0 160 14 240 0 160-14 240 0"/>
+      </g>
+      <g class="birds" fill="none" stroke="#2a1430" stroke-width="3" stroke-linecap="round">
+        <path d="M0 200q10-10 20 0q10-10 20 0"/><path d="M50 180q8-8 16 0q8-8 16 0"/><path d="M30 230q7-7 14 0q7-7 14 0"/>
+      </g>
+      <path d="M0 820c260-40 560-50 860-30s520 30 740 0v110H0z" fill="#1c1022"/>
+      <g fill="#120a18">
+        <g class="palm">
+          <path d="M1330 900c-6-150 10-300 70-430l14 6c-54 130-66 270-62 424z"/>
+          <g transform="translate(1405 470)">
+            <path d="M0 0c-60-30-140-20-200 30 70-20 130-24 200-30z"/><path d="M0 0c-40-60-110-80-180-70 60 20 120 40 180 70z"/>
+            <path d="M0 0c20-70 80-110 160-110-60 30-110 60-160 110z"/><path d="M0 0c60-30 140-20 210 30-70-14-140-20-210-30z"/>
+            <path d="M0 0c40 30 70 90 70 160-30-60-50-110-70-160z"/><path d="M0 0c-30 40-50 100-40 170 10-60 20-120 40-170z"/>
+          </g>
+        </g>
+      </g>
+    </svg>
+  </div>
+
+  <!-- Forest cabin at dusk -->
+  <div class="sc" id="scForest">
+    <svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <linearGradient id="fSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#07121f"/><stop offset=".5" stop-color="#173244"/><stop offset="1" stop-color="#3f5f5a"/></linearGradient>
+        <radialGradient id="fWin"><stop offset="0" stop-color="#ffcf7a" stop-opacity=".7"/><stop offset="1" stop-color="#ffb050" stop-opacity="0"/></radialGradient>
+        <radialGradient id="fFly"><stop offset="0" stop-color="#fff4a8"/><stop offset=".35" stop-color="#f5d855" stop-opacity=".8"/><stop offset="1" stop-color="#f5d855" stop-opacity="0"/></radialGradient>
+      </defs>
+      <rect width="1600" height="900" fill="url(#fSky)"/>
+      <g id="fStars" fill="#fff"></g>
+      <circle cx="1240" cy="150" r="46" fill="#f3ead2" opacity=".9"/><circle cx="1262" cy="138" r="44" fill="#0e2030"/>
+      <g id="fFar"></g>
+      <g class="mist" fill="#cfe6e0" opacity=".08"><ellipse cx="500" cy="640" rx="620" ry="40"/><ellipse cx="1200" cy="680" rx="520" ry="34"/></g>
+      <g id="fMid"></g>
+      <g transform="translate(1010 470)">
+        <ellipse cx="100" cy="196" rx="300" ry="48" fill="#10252c"/>
+        <circle cx="80" cy="70" r="170" fill="url(#fWin)"/>
+        <g class="smoke" fill="#b9c7c4" opacity=".5"><circle cx="150" cy="-40" r="10"/><circle cx="150" cy="-40" r="10"/><circle cx="150" cy="-40" r="10"/></g>
+        <rect x="138" y="-30" width="24" height="60" fill="#0b1416"/>
+        <path d="M-20 60l120-90 120 90z" fill="#0b1416"/>
+        <rect x="0" y="60" width="200" height="120" fill="#0d181b"/>
+        <rect x="30" y="85" width="44" height="40" rx="3" fill="#ffc96a"/>
+        <path d="M52 85v40M30 105h44" stroke="#0d181b" stroke-width="4"/>
+        <rect x="120" y="100" width="40" height="80" fill="#091113"/>
+      </g>
+      <g id="fNear"></g>
+      <g id="fFlies"></g>
+    </svg>
+  </div>
+
   <div class="hum"></div>
-  <svg class="city" id="city" viewBox="0 0 1600 400" preserveAspectRatio="xMidYMax slice"></svg>
-  <div class="lamp"></div>
   <div class="fire"></div>
+  <div class="tint"></div>
   <canvas id="rainCv"></canvas>
-  <div class="frame"></div>
+  <div class="vignette"></div>
 </div>
 
 <div class="stage">
   <header>
-    <span class="badge"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 14v-2a9 9 0 0 1 18 0v2"/><rect x="2" y="14" width="5" height="7" rx="2"/><rect x="17" y="14" width="5" height="7" rx="2"/></svg></span>
+    <span class="badge"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 14v-2a9 9 0 0 1 18 0v2"/><rect x="2" y="14" width="5" height="7" rx="2"/><rect x="17" y="14" width="5" height="7" rx="2"/></svg></span>
     <span class="name">Custombiztool Focus Radio</span>
     <span class="onair">On air</span>
-    <a href="https://custombiztools.online">All tools</a>
+    <div class="scenes glass" role="group" aria-label="Scene">
+      <button data-scene="city" aria-pressed="true"><span class="sw" style="background:linear-gradient(#0b1029,#3a2449)"></span>Night city</button>
+      <button data-scene="cafe" aria-pressed="false"><span class="sw" style="background:linear-gradient(#3a2a52,#6b4429)"></span>Coffee shop</button>
+      <button data-scene="beach" aria-pressed="false"><span class="sw" style="background:linear-gradient(#7a2f63,#ffa060)"></span>Beach</button>
+      <button data-scene="forest" aria-pressed="false"><span class="sw" style="background:linear-gradient(#173244,#3f5f5a)"></span>Forest cabin</button>
+    </div>
+    <a class="all" href="https://custombiztools.online">All tools</a>
   </header>
 
-  <main class="center">
-    <h1>Music to work to, with a timer that keeps you honest.</h1>
-
-    <section class="timer glass" aria-label="Focus timer">
-      <div class="tabs" role="group" aria-label="Timer mode">
-        <button data-mode="focus" aria-pressed="true">Focus</button>
-        <button data-mode="short" aria-pressed="false">Short break</button>
-        <button data-mode="long" aria-pressed="false">Long break</button>
+  <main class="center" aria-label="Focus timer">
+    <h1 class="sr-only">Custombiztool Focus Radio: music to work to, with a timer that keeps you honest.</h1>
+    <div class="tabs glass" role="group" aria-label="Timer mode">
+      <button data-mode="focus" aria-pressed="true">Focus</button>
+      <button data-mode="short" aria-pressed="false">Short break</button>
+      <button data-mode="long" aria-pressed="false">Long break</button>
+    </div>
+    <div class="time" id="tTime" role="timer" aria-live="off">25:00</div>
+    <div class="label" id="tLabel">Ready to focus</div>
+    <div class="progress" aria-hidden="true"><i id="tBar"></i></div>
+    <div class="t-actions">
+      <button class="primary" id="btnTimer">Start focus</button>
+      <button id="btnReset">Reset</button>
+      <button id="btnSkip">Skip</button>
+    </div>
+    <div class="dots" id="dots" aria-label="Sessions until long break"></div>
+    <details class="tset glass">
+      <summary>Timer settings</summary>
+      <div class="settings">
+        <label>Focus (minutes)<input type="number" id="sFocus" min="1" max="180" value="25"></label>
+        <label>Short break<input type="number" id="sShort" min="1" max="60" value="5"></label>
+        <label>Long break<input type="number" id="sLong" min="1" max="90" value="15"></label>
+        <label>Long break every<input type="number" id="sEvery" min="2" max="12" value="4"></label>
+        <label class="full">During breaks, the music should
+          <select id="sBreak">
+            <option value="lower">Get quieter</option>
+            <option value="pause">Pause</option>
+            <option value="keep">Keep playing as is</option>
+          </select>
+        </label>
+        <label class="check"><input type="checkbox" id="sAuto" checked> Start the next session automatically</label>
+        <label class="check"><input type="checkbox" id="sMusic" checked> Start the music when a focus session starts</label>
+        <label class="check"><input type="checkbox" id="sChime" checked> Soft chime when a session ends</label>
       </div>
-      <div class="ring">
-        <svg viewBox="0 0 120 120" aria-hidden="true"><circle class="track" cx="60" cy="60" r="54"/><circle class="bar" id="ringBar" cx="60" cy="60" r="54"/></svg>
-        <div class="inner"><div class="time" id="tTime" role="timer" aria-live="off">25:00</div><div class="label" id="tLabel">Ready to focus</div></div>
-      </div>
-      <div class="t-actions">
-        <button class="primary" id="btnTimer">Start focus</button>
-        <button id="btnReset">Reset</button>
-        <button id="btnSkip">Skip</button>
-      </div>
-      <div class="dots" id="dots" aria-label="Sessions until long break"></div>
-      <details>
-        <summary>Timer settings</summary>
-        <div class="settings">
-          <label>Focus (minutes)<input type="number" id="sFocus" min="1" max="180" value="25"></label>
-          <label>Short break<input type="number" id="sShort" min="1" max="60" value="5"></label>
-          <label>Long break<input type="number" id="sLong" min="1" max="90" value="15"></label>
-          <label>Long break every<input type="number" id="sEvery" min="2" max="12" value="4"></label>
-          <label class="full">During breaks, the music should
-            <select id="sBreak">
-              <option value="lower">Get quieter</option>
-              <option value="pause">Pause</option>
-              <option value="keep">Keep playing as is</option>
-            </select>
-          </label>
-          <label class="check"><input type="checkbox" id="sAuto" checked> Start the next session automatically</label>
-          <label class="check"><input type="checkbox" id="sMusic" checked> Start the music when a focus session starts</label>
-          <label class="check"><input type="checkbox" id="sChime" checked> Soft chime when a session ends</label>
-        </div>
-      </details>
-    </section>
+    </details>
   </main>
 
   <section class="dock glass" aria-label="Music player">
     <div class="np">
-      <div class="np-kicker"><span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>Now playing &middot; Focus Mix</div>
-      <p class="np-title" id="npTitle">&nbsp;</p>
-      <div class="np-sub" id="npSub">Original track</div>
+      <span class="disc" aria-hidden="true"></span>
+      <div class="np-text">
+        <div class="np-kicker"><span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>Now playing &middot; Focus Mix</div>
+        <p class="np-title" id="npTitle">&nbsp;</p>
+        <div class="np-sub" id="npSub">Original track</div>
+      </div>
     </div>
     <div class="controls">
       <button class="icon-btn" id="btnPrev" aria-label="Previous track"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
@@ -309,8 +496,8 @@
   </section>
   <section class="panel glass about" aria-label="About Custombiztool Focus Radio">
     <h2>How it works</h2>
-    <p>Press play, start a focus session, and get to work. The music lowers itself when it is time for a break and comes back when you do. Free, no signup, nothing to install.</p>
-    <p>All music on Custombiztool Focus Radio is original. Shortcuts: <kbd>Space</kbd> play or pause music, <kbd>N</kbd> next track, <kbd>T</kbd> start or pause the timer. The timer keeps time in a background tab, and the countdown shows in the tab title. Your settings are remembered on this device.</p>
+    <p>Pick a scene, press play, start a focus session, and get to work. The music lowers itself when it is time for a break and comes back when you do. Free, no signup, nothing to install.</p>
+    <p>All music on Custombiztool Focus Radio is original. Shortcuts: <kbd>Space</kbd> play or pause music, <kbd>N</kbd> next track, <kbd>T</kbd> start or pause the timer. The timer keeps time in a background tab, and the countdown shows in the tab title. Your settings and scene are remembered on this device.</p>
   </section>
 </div>
 
@@ -350,13 +537,14 @@
   // iPhone Safari ignores audio.volume; detect it and fall back to device buttons.
   var VOL_OK = (function(){ var a = document.createElement('audio'); a.volume = 0.5; return a.volume === 0.5; })();
 
-  // ================= SCENE =================
+  // ================= SCENES =================
   var REDUCED = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // seeded so the skyline is the same on every visit
+  // seeded so every scene looks the same on every visit
   function rng(seed){ return function(){ seed = seed * 16807 % 2147483647; return (seed - 1) / 2147483646; }; }
+  function f1(n){ return n.toFixed(1); }
 
-  (function buildSky(){
+  (function buildCity(){
     var r = rng(7), s = '';
     for (var i = 0; i < 110; i++) {
       s += '<circle cx="' + (r() * 100).toFixed(2) + '%" cy="' + (r() * 100).toFixed(2) + '%" r="' + (0.4 + r() * 0.9).toFixed(2) +
@@ -369,14 +557,14 @@
     function row(color, minH, maxH, lit, glow){
       for (var x = -20; x < 1620;) {
         var w = 46 + r() * 84, h = minH + r() * (maxH - minH), top = 400 - h;
-        s += '<rect x="' + x.toFixed(1) + '" y="' + top.toFixed(1) + '" width="' + w.toFixed(1) + '" height="' + h.toFixed(1) + '" fill="' + color + '"/>';
-        if (r() < 0.25) s += '<rect x="' + (x + w / 2 - 1).toFixed(1) + '" y="' + (top - 18).toFixed(1) + '" width="2" height="18" fill="' + color + '"/>';
+        s += '<rect x="' + f1(x) + '" y="' + f1(top) + '" width="' + f1(w) + '" height="' + f1(h) + '" fill="' + color + '"/>';
+        if (r() < 0.25) s += '<rect x="' + f1(x + w / 2 - 1) + '" y="' + f1(top - 18) + '" width="2" height="18" fill="' + color + '"/>';
         for (var wy = top + 12; wy < 392; wy += 15) {
           for (var wx = x + 8; wx < x + w - 10; wx += 12) {
             if (r() >= lit) continue;
             var cls = '';
             if (twinkles < 18 && r() < 0.06) { cls = ' class="tw" style="animation-delay:-' + (r() * 6).toFixed(1) + 's"'; twinkles++; }
-            s += '<rect' + cls + ' x="' + wx.toFixed(1) + '" y="' + wy.toFixed(1) + '" width="5" height="8" fill="' + glow +
+            s += '<rect' + cls + ' x="' + f1(wx) + '" y="' + f1(wy) + '" width="5" height="8" fill="' + glow +
               '" opacity="' + (0.35 + r() * 0.55).toFixed(2) + '"/>';
           }
         }
@@ -388,8 +576,73 @@
     $('city').innerHTML = s;
   })();
 
-  // rain on the window: streaks behind the glass, drops sliding on it
-  var rainLvl = 0;
+  (function buildCafe(){
+    var r = rng(11), s = '', b = '';
+    // street outside: low buildings across the bottom of the window
+    for (var x = 250; x < 1350;) {
+      var w = 60 + r() * 110, h = 90 + r() * 170;
+      s += '<rect x="' + f1(x) + '" y="' + f1(670 - h) + '" width="' + f1(w) + '" height="' + f1(h) + '" fill="#1d1730" opacity=".9"/>';
+      x += w + 4;
+    }
+    $('cStreet').innerHTML = s;
+    // blurry lights out on the street
+    var cols = ['#ffbf6b', '#ff7d8a', '#7fd6ff', '#ffe08a', '#ff9d5c'];
+    for (var i = 0; i < 46; i++) {
+      b += '<circle cx="' + f1(270 + r() * 1060) + '" cy="' + f1(380 + r() * 270) + '" r="' + f1(8 + r() * 22) + '" fill="' + cols[i % cols.length] +
+        '" opacity=".7" style="animation-delay:-' + (r() * 5).toFixed(1) + 's"/>';
+    }
+    $('cBokeh').innerHTML = b;
+  })();
+
+  (function buildBeach(){
+    var r = rng(5), s = '';
+    // sun glints on the water, widening toward the shore
+    for (var i = 0; i < 34; i++) {
+      var y = 590 + r() * 200, spread = 40 + (y - 580) * 1.1;
+      var w = 20 + r() * 70;
+      s += '<rect x="' + f1(800 - spread + r() * spread * 2 - w / 2) + '" y="' + f1(y) + '" width="' + f1(w) + '" height="3" rx="1.5"' +
+        ' style="animation-delay:-' + (r() * 3.6).toFixed(1) + 's"/>';
+    }
+    $('bShimmer').innerHTML = s;
+  })();
+
+  (function buildForest(){
+    var r = rng(23);
+    function pine(x, base, h, color){
+      var w = h * 0.42, p = '';
+      for (var t = 0; t < 3; t++) {
+        var top = base - h + t * h * 0.26, bot = top + h * 0.46, half = w * (0.42 + 0.2 * t);
+        p += 'M' + f1(x) + ' ' + f1(top) + 'L' + f1(x + half) + ' ' + f1(bot) + 'L' + f1(x - half) + ' ' + f1(bot) + 'Z';
+      }
+      p += 'M' + f1(x - w * 0.05) + ' ' + f1(base - h * 0.2) + 'h' + f1(w * 0.1) + 'V' + f1(base) + 'h' + f1(-w * 0.1) + 'Z';
+      return '<path d="' + p + '" fill="' + color + '"/>';
+    }
+    function layer(id, color, base, minH, maxH, gap, skipFrom, skipTo){
+      var s = '';
+      for (var x = -40; x < 1660; x += gap * (0.6 + r() * 0.8)) {
+        if (x > skipFrom && x < skipTo) continue;
+        s += pine(x, base + r() * 30, minH + r() * (maxH - minH), color);
+      }
+      s += '<rect x="0" y="' + base + '" width="1600" height="' + (900 - base) + '" fill="' + color + '"/>';
+      $(id).innerHTML = s;
+    }
+    var st = '';
+    for (var i = 0; i < 60; i++) st += '<circle cx="' + f1(r() * 1600) + '" cy="' + f1(r() * 380) + '" r="' + (0.6 + r()).toFixed(2) + '" opacity="' + (0.2 + r() * 0.6).toFixed(2) + '"/>';
+    $('fStars').innerHTML = st;
+    layer('fFar', '#1a3640', 640, 160, 300, 46, 9999, 9999);
+    layer('fMid', '#10252c', 760, 220, 380, 70, 940, 1210);
+    layer('fNear', '#071216', 870, 380, 620, 150, 300, 1300);
+    var fl = '';
+    for (var j = 0; j < 34; j++) {
+      fl += '<g class="fly" style="animation-delay:-' + (r() * 9).toFixed(1) + 's;animation-duration:' + (7 + r() * 6).toFixed(1) + 's">' +
+        '<circle cx="' + f1(r() * 1600) + '" cy="' + f1(520 + r() * 340) + '" r="' + f1(6 + r() * 6) + '" fill="url(#fFly)"' +
+        ' style="animation-delay:-' + (r() * 2.6).toFixed(1) + 's"/></g>';
+    }
+    $('fFlies').innerHTML = fl;
+  })();
+
+  // rain: streaks falling across the scene, drops sliding down the glass
+  var rainLvl = 0, drizzle = 0;
   var rain = (function(){
     var cv = $('rainCv'), g = cv.getContext('2d'), W = 0, H = 0, streaks = [], drops = [], last = 0;
     function resize(){
@@ -402,8 +655,8 @@
     function streak(top){ return { x: Math.random() * (W + 200) - 100, y: top ? -40 : Math.random() * H, l: 10 + Math.random() * 24, v: 9 + Math.random() * 10 }; }
     function drop(top){ return { x: Math.random() * W, y: top ? -10 : Math.random() * H, r: 1.4 + Math.random() * 3.4, v: 0, hold: 40 + Math.random() * 500 }; }
     function draw(move){
-      // a light drizzle is always there; the Rain slider makes it pour
-      var k = 0.18 + 0.82 * rainLvl;
+      // the city has a light drizzle by default; the Rain slider makes any scene pour
+      var k = rainLvl > 0 ? 0.18 + 0.82 * rainLvl : drizzle;
       var ns = Math.round(260 * k), nd = Math.round(70 * k);
       while (streaks.length < ns) streaks.push(streak(move));
       streaks.length = ns;
@@ -411,6 +664,7 @@
       drops.length = nd;
 
       g.clearRect(0, 0, W, H);
+      if (!ns) return;
       g.strokeStyle = 'rgba(190,205,255,0.2)'; g.lineWidth = 1; g.beginPath();
       streaks.forEach(function(p){
         g.moveTo(p.x, p.y); g.lineTo(p.x - p.l * 0.14, p.y + p.l);
@@ -454,6 +708,28 @@
     document.documentElement.style.setProperty(SCENE_VAR[name], level);
     if (name === 'rain') { rainLvl = level; rain.redraw(); }
   }
+
+  var SCENES = {
+    city:   { el: 'scCity',   drizzle: 0.18, theme: '#070814' },
+    cafe:   { el: 'scCafe',   drizzle: 0,    theme: '#170d08' },
+    beach:  { el: 'scBeach',  drizzle: 0,    theme: '#241640' },
+    forest: { el: 'scForest', drizzle: 0,    theme: '#07121f' }
+  };
+  function pickScene(name){
+    if (!SCENES[name]) name = 'city';
+    Object.keys(SCENES).forEach(function(k){ $(SCENES[k].el).classList.toggle('on', k === name); });
+    document.querySelectorAll('.scenes button').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.scene === name)); });
+    document.body.dataset.scene = name;
+    drizzle = SCENES[name].drizzle; rain.redraw();
+    var meta = document.querySelector('meta[name=theme-color]');
+    if (meta) meta.setAttribute('content', SCENES[name].theme);
+    saved.scene = name; save();
+  }
+  document.querySelectorAll('.scenes button').forEach(function(b){
+    b.addEventListener('click', function(){ pickScene(b.dataset.scene); });
+  });
+  // a link like radio.custombiztools.online/#scene=beach opens on that scene
+  pickScene((location.hash.match(/scene=(\w+)/) || [])[1] || saved.scene);
 
   // ================= MUSIC =================
   var order = [], pos = 0;
@@ -665,7 +941,7 @@
     var input = $(LAYERS[name].input);
     var v0 = saved.amb[name] || 0;
     input.value = Math.round(v0 * 100);
-    // the room shows saved levels right away; the sound waits for a click
+    // the scene shows saved levels right away; the sound waits for a click
     setScene(name, v0);
     $(LAYERS[name].input + 'L').classList.toggle('on', v0 > 0);
     input.addEventListener('input', function(){
@@ -718,8 +994,6 @@
 
   var mode = 'focus', running = false, endAt = 0, remaining = 0, total = 0, done = 0;
   var pausedByBreak = false;
-  var CIRC = 2 * Math.PI * 54;
-  $('ringBar').style.strokeDasharray = CIRC;
 
   function minutes(m){ return Math.max(1, +$(MODES[m].input).value || 1) * 60000; }
   function every(){ return Math.max(2, +$('sEvery').value || 4); }
@@ -772,7 +1046,8 @@
   function renderTimer(){
     var t = $('tTime'), sec = Math.ceil(remaining / 1000);
     t.textContent = fmt(sec);
-    $('ringBar').style.strokeDashoffset = CIRC * (1 - (total ? remaining / total : 0));
+    // the bar empties as the session runs down
+    $('tBar').style.transform = 'scaleX(' + (total ? remaining / total : 0) + ')';
     $('tLabel').textContent = running ? MODES[mode].run : (remaining < total ? 'Paused' : MODES[mode].ready);
     $('btnTimer').textContent = running ? 'Pause' : (remaining < total ? 'Resume' : 'Start ' + (mode === 'focus' ? 'focus' : 'break'));
     document.title = running || remaining < total
