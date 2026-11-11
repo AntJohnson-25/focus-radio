@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Custombiztool Focus Radio &mdash; Work Music &amp; Pomodoro Timer</title>
-<meta name="description" content="Free focus music radio with a built-in Pomodoro timer. Original tracks, rain and fireplace sounds, four animated scenes, and music that lowers itself on your breaks. Nothing to install, no signup.">
+<meta name="description" content="Free focus music radio with a built-in Pomodoro timer. Original tracks, rain and fireplace sounds, cover art for every track, and music that lowers itself on your breaks. Nothing to install, no signup.">
 <link rel="canonical" href="https://radio.custombiztools.online/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Custom Biz Tools">
@@ -26,259 +26,155 @@
   "author": { "@type": "Person", "@id": "https://anthonyjctsg.com/#person", "name": "Anthony C Johnson", "url": "https://anthonyjctsg.com/" }
 }
 </script>
-<meta name="theme-color" content="#070814">
+<meta name="theme-color" content="#14183a">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
+  /* "Record sleeve" look. Every track gets generated cover art; the page
+     background and the accent colour come from that cover (set in applyCover). */
   :root{
-    --ground:#070814;
-    --glass:rgba(12,10,22,0.42);
-    --glass-strong:rgba(12,10,22,0.62);
-    --glass-border:rgba(255,255,255,0.13);
-    --glass-border-hover:rgba(255,255,255,0.3);
-    --ink:#FAF6EF;
-    --ink-soft:#C9C1D6;
-    --ink-faint:#8E87A3;
-    --focus:#FF9A3D;
-    --break:#84E3B6;
-    --mode:var(--focus);
-    --rain:0; --fire:0; --hum:0;
+    --d1:#0f3d3e; --d2:#1b1f4b; --d3:#3a1244; --accent:#ffd166; --label:#ef476f;
+    --ink:#fff; --soft:rgba(255,255,255,.72); --faint:rgba(255,255,255,.5);
+    --chip:rgba(255,255,255,.11); --chip-hover:rgba(255,255,255,.2); --dark:#14183a;
+    --mode:var(--accent);
   }
-  body[data-scene=cafe]{ --focus:#FFB45E; }
-  body[data-scene=beach]{ --focus:#FF7E6B; }
-  body[data-scene=forest]{ --focus:#F5CD55; }
-  /* set on body too, so a scene's --focus override reaches --mode */
-  body{--mode:var(--focus);}
-  body.is-break{--mode:var(--break);}
+  body{--mode:var(--accent);}
+  body.is-break{--mode:#06d6a0;}
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
-  body{background:var(--ground);color:var(--ink);font-family:'Manrope',-apple-system,'Segoe UI',sans-serif;
+  body{color:var(--ink);font-family:'Space Grotesk',-apple-system,'Segoe UI',sans-serif;background:var(--d2);
     min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased;}
+  body::before{content:'';position:fixed;inset:0;z-index:-1;background:linear-gradient(135deg,var(--d1),var(--d2) 55%,var(--d3));}
+  /* the old animated scenes stay in the page for the script, but are not shown */
+  .scene{display:none;}
 
-  /* ---------- scenes: one full-screen picture behind everything ---------- */
-  .scene{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;}
-  .sc{position:absolute;inset:0;opacity:0;transition:opacity 1.2s ease;}
-  .sc.on{opacity:1;}
-  /* only the visible scene animates, so the hidden ones cost nothing */
-  .sc:not(.on), .sc:not(.on) *{animation-play-state:paused !important;}
-  .sc > svg{position:absolute;inset:0;width:100%;height:100%;}
+  .stage{min-height:100vh;min-height:100svh;max-width:1320px;margin:0 auto;padding:26px 44px 26px;display:flex;flex-direction:column;gap:24px;}
 
-  /* night city */
-  .city-sky{position:absolute;inset:0;background:linear-gradient(180deg,#04050d 0%,#0b1029 40%,#231b42 74%,#3a2449 100%);}
-  .stars{position:absolute;left:0;top:0;width:100%;height:65%;}
-  .stars circle{fill:#fff;}
-  .moon{position:absolute;top:12vh;right:13vw;width:clamp(56px,9vw,110px);aspect-ratio:1;border-radius:50%;
-    background:radial-gradient(circle at 36% 34%,#fffaf0,#efe3c8 58%,#cdbf9f);
-    box-shadow:0 0 50px 16px rgba(255,238,205,.16),0 0 170px 70px rgba(255,238,205,.07);}
-  .city{position:absolute;left:0;bottom:0;width:100%;height:48vh;}
-  .tw{animation:twinkle 6s ease-in-out infinite;}
+  button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;}
+  button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid var(--mode);outline-offset:3px;}
 
-  /* coffee shop */
-  .bokeh circle{animation:twinkle 5s ease-in-out infinite;}
-  .lamp{transform-box:fill-box;transform-origin:50% 0;animation:sway 7s ease-in-out infinite;}
-  .lamp:nth-of-type(2){animation-delay:-2.5s;} .lamp:nth-of-type(3){animation-delay:-5s;}
-  .steam path{fill:none;stroke:rgba(255,255,255,.35);stroke-width:5;stroke-linecap:round;
-    animation:steam 4.5s ease-in infinite;transform-box:fill-box;}
-  .steam path:nth-child(2){animation-delay:-1.5s;} .steam path:nth-child(3){animation-delay:-3s;}
+  header{display:flex;align-items:center;gap:12px 20px;flex-wrap:wrap;}
+  header .name{font-weight:700;font-size:16px;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;}
+  .scenes{display:flex;gap:6px;margin-left:auto;}
+  .scenes button,.tabs button{font-size:13px;font-weight:500;padding:8px 15px;border-radius:999px;background:var(--chip);white-space:nowrap;}
+  .scenes button:hover,.tabs button:hover{background:var(--chip-hover);}
+  .scenes button[aria-pressed=true],.tabs button[aria-pressed=true]{background:#fff;color:var(--dark);font-weight:700;}
+  header .all{font-size:13px;color:var(--soft);text-decoration:none;white-space:nowrap;}
+  header .all:hover{color:#fff;}
 
-  /* beach sunset */
-  .shimmer rect{animation:shimmer 3.6s ease-in-out infinite;}
-  .cloud{animation:cloud 60s linear infinite alternate;}
-  .birds{animation:birds 38s linear infinite;}
-  .wave{animation:wave 7s ease-in-out infinite;}
-  .palm{transform-box:fill-box;transform-origin:50% 100%;animation:palm 9s ease-in-out infinite;}
+  .main{flex:1;display:grid;grid-template-columns:auto minmax(0,1fr);gap:64px;align-items:center;padding:10px 0;}
 
-  /* forest cabin */
-  .fly{animation:fly 9s ease-in-out infinite;}
-  .fly circle{animation:blink 2.6s ease-in-out infinite;}
-  .mist{animation:mist 40s ease-in-out infinite alternate;}
-  .smoke circle{animation:smoke 6s ease-out infinite;transform-box:fill-box;transform-origin:center;}
-  .smoke circle:nth-child(2){animation-delay:-2s;} .smoke circle:nth-child(3){animation-delay:-4s;}
+  /* record sliding out of its sleeve */
+  .deck{--w:min(360px,31vw);position:relative;width:var(--w);aspect-ratio:1;margin-right:calc(var(--w) * .3);}
+  .record{position:absolute;top:4%;bottom:4%;left:38%;aspect-ratio:1;border-radius:50%;
+    background:repeating-radial-gradient(circle,#111 0 2px,#1c1c1c 2px 4px);box-shadow:0 20px 40px rgba(0,0,0,.5);}
+  .record::after{content:'';position:absolute;inset:36%;border-radius:50%;background:var(--label);box-shadow:inset 0 0 0 8px var(--accent);}
+  .record::before{content:'';position:absolute;left:50%;top:39%;width:6%;height:6%;margin-left:-3%;border-radius:50%;background:var(--dark);z-index:1;}
+  body.is-playing .record{animation:spin 5s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .sleeve{position:absolute;inset:0;z-index:2;border-radius:10px;overflow:hidden;box-shadow:0 30px 60px rgba(0,0,0,.5);
+    background-color:#f7a072;background-size:cover;padding:22px;display:flex;flex-direction:column;justify-content:flex-end;}
+  .sleeve::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(0,0,0,.62));}
+  .sleeve > *{position:relative;z-index:1;}
+  .np-kicker{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--soft);font-weight:500;}
+  .np-kicker::before{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:8px;border:1px solid var(--soft);}
+  body.is-playing .np-kicker::before{background:var(--accent);border-color:var(--accent);}
+  .np-title{font-weight:700;font-size:clamp(22px,2.4vw,30px);line-height:1.04;letter-spacing:-.03em;margin:6px 0 4px;}
+  .np-sub{font-size:12px;color:var(--soft);}
 
-  @keyframes twinkle{0%,100%{opacity:.85;}50%{opacity:.25;}}
-  @keyframes sway{0%,100%{transform:rotate(1.6deg);}50%{transform:rotate(-1.6deg);}}
-  @keyframes steam{0%{opacity:0;transform:translateY(10px) scaleY(.8);}30%{opacity:.9;}100%{opacity:0;transform:translateY(-60px) scaleY(1.2);}}
-  @keyframes shimmer{0%,100%{opacity:.15;transform:translateX(0);}50%{opacity:.9;transform:translateX(12px);}}
-  @keyframes cloud{from{transform:translateX(-80px);}to{transform:translateX(80px);}}
-  @keyframes birds{from{transform:translate(-300px,40px);}to{transform:translate(1900px,-60px);}}
-  @keyframes wave{0%,100%{transform:translateX(0);}50%{transform:translateX(-40px);}}
-  @keyframes palm{0%,100%{transform:rotate(-1.2deg);}50%{transform:rotate(1.4deg);}}
-  @keyframes fly{0%,100%{transform:translate(0,0);}33%{transform:translate(26px,-18px);}66%{transform:translate(-14px,-34px);}}
-  @keyframes blink{0%,100%{opacity:.1;}50%{opacity:1;}}
-  @keyframes mist{from{transform:translateX(-120px);}to{transform:translateX(120px);}}
-  @keyframes smoke{0%{opacity:0;transform:translate(0,0) scale(.6);}20%{opacity:.5;}100%{opacity:0;transform:translate(30px,-110px) scale(2.2);}}
-
-  /* layers every scene shares */
-  .hum{position:absolute;inset:-15%;opacity:calc(var(--hum) * .95);transition:opacity .6s ease;animation:breathe 8s ease-in-out infinite;
-    background:radial-gradient(ellipse at 50% 72%,rgba(150,110,255,.34),transparent 58%);}
-  .fire{position:absolute;right:-12vw;bottom:-24vh;width:72vw;height:78vh;opacity:var(--fire);transition:opacity .6s ease;
-    transform-origin:70% 90%;animation:flicker 2.8s ease-in-out infinite;
-    background:radial-gradient(ellipse at 62% 78%,rgba(255,118,40,.75),rgba(255,82,24,.28) 42%,transparent 70%);}
-  .tint{position:absolute;inset:0;opacity:0;transition:opacity 4s ease;
-    background:linear-gradient(180deg,transparent 25%,rgba(70,150,150,.32) 100%);}
-  body.is-break .tint{opacity:1;}
-  #rainCv{position:absolute;inset:0;width:100%;height:100%;}
-  .vignette{position:absolute;inset:0;
-    background:radial-gradient(ellipse 60% 50% at 50% 42%,rgba(0,0,0,.34),transparent 70%),
-               linear-gradient(180deg,rgba(0,0,0,.35),transparent 18%,transparent 62%,rgba(5,5,12,.8));}
-  /* the sunset is the brightest scene, so it gets a darker centre behind the timer */
-  body[data-scene=beach] .vignette{
-    background:radial-gradient(ellipse 46% 44% at 50% 46%,rgba(20,8,30,.55),transparent 75%),
-               linear-gradient(180deg,rgba(0,0,0,.3),transparent 18%,transparent 62%,rgba(5,5,12,.8));}
-  @keyframes flicker{0%,100%{transform:scale(1);}22%{transform:scale(1.05) translateY(-1.5%);}48%{transform:scale(.97);}71%{transform:scale(1.03) translateY(-.8%);}}
-  @keyframes breathe{0%,100%{transform:scale(1);}50%{transform:scale(1.06);}}
-
-  /* ---------- foreground ---------- */
-  .stage{position:relative;z-index:1;min-height:100vh;min-height:100svh;display:flex;flex-direction:column;}
-  header{display:flex;align-items:center;gap:10px;padding:16px 24px;}
-  header .badge{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;flex:none;
-    background:var(--mode);color:#1a1222;box-shadow:0 6px 20px -6px var(--mode);transition:background 1s ease,box-shadow 1s ease;}
-  header .name{font-family:'Bricolage Grotesque','Manrope',sans-serif;font-weight:800;font-size:18px;letter-spacing:-.02em;white-space:nowrap;}
-  header .onair{font-size:11px;font-weight:800;letter-spacing:.12em;color:var(--ink-faint);border:1px solid var(--glass-border);
-    border-radius:99px;padding:3px 8px;text-transform:uppercase;transition:color .4s ease,border-color .4s ease;}
-  body.is-playing header .onair{color:#ff8f8f;border-color:rgba(255,143,143,.5);}
-  header .all{color:var(--ink-soft);font-size:13px;font-weight:600;text-decoration:none;margin-left:auto;white-space:nowrap;}
-  header .all:hover{color:var(--ink);}
-
-  .glass{background:var(--glass);border:1px solid var(--glass-border);
-    backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%);
-    box-shadow:0 1px 0 rgba(255,255,255,0.08) inset,0 24px 50px -24px rgba(0,0,0,.8);}
-
-  /* scene picker */
-  .scenes{display:flex;gap:4px;padding:4px;border-radius:999px;margin:0 auto;}
-  .scenes button{border:0;background:transparent;border-radius:999px;padding:7px 14px;color:var(--ink-soft);
-    display:inline-flex;align-items:center;gap:7px;white-space:nowrap;}
-  .scenes button:hover{color:var(--ink);background:rgba(255,255,255,.07);}
-  .scenes button[aria-pressed=true]{background:var(--ink);color:#1a1222;}
-  .scenes .sw{width:14px;height:14px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.35);}
-
-  button{font:600 13px 'Manrope',sans-serif;color:var(--ink);background:rgba(255,255,255,0.06);border:1px solid var(--glass-border);
-    border-radius:999px;padding:9px 16px;cursor:pointer;}
-  button:hover{border-color:var(--glass-border-hover);background:rgba(255,255,255,0.1);}
-  button.primary{color:#1a1222;background:var(--mode);border-color:var(--mode);font-weight:800;
-    box-shadow:0 8px 28px -8px var(--mode);}
-  button.primary:hover{filter:brightness(1.07);background:var(--mode);}
-  button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--mode);outline-offset:2px;}
-  input[type=range]{accent-color:var(--mode);width:100%;margin:0;}
-
-  /* timer: big numbers straight on the scene */
-  .center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:8px 16px 20px;text-align:center;}
-  .tabs{display:flex;gap:4px;padding:4px;border-radius:999px;}
-  .tabs button{border:0;background:transparent;color:var(--ink-soft);padding:7px 14px;}
-  .tabs button:hover{color:var(--ink);background:rgba(255,255,255,.07);}
-  .tabs button[aria-pressed=true]{color:#1a1222;background:var(--mode);}
-  .time{font-family:'Bricolage Grotesque','Manrope',sans-serif;font-weight:800;font-size:clamp(84px,17vw,176px);
-    letter-spacing:-.045em;line-height:.95;font-variant-numeric:tabular-nums;margin-top:14px;
-    text-shadow:0 4px 40px rgba(0,0,0,.45),0 0 70px color-mix(in srgb,var(--mode) 35%,transparent);}
-  .label{color:var(--ink-soft);font-size:14px;font-weight:600;letter-spacing:.02em;text-shadow:0 1px 10px rgba(0,0,0,.7);}
-  .progress{width:min(380px,80vw);height:5px;border-radius:99px;background:rgba(255,255,255,.14);overflow:hidden;margin:14px 0 6px;}
-  .progress i{display:block;height:100%;width:100%;background:var(--mode);border-radius:inherit;transform-origin:left;
-    box-shadow:0 0 12px var(--mode);transition:transform .3s linear,background 1s ease;}
-  .t-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:8px;}
-  .t-actions .primary{min-width:150px;padding:11px 20px;font-size:14px;}
-  .t-actions button:not(.primary){background:rgba(10,8,20,.4);}
-  .dots{display:flex;justify-content:center;align-items:center;gap:6px;margin-top:12px;font-size:12px;font-weight:600;color:var(--ink);text-shadow:0 1px 3px rgba(0,0,0,.85),0 0 14px rgba(0,0,0,.6);}
-  .dots i{width:8px;height:8px;border-radius:50%;border:1px solid var(--glass-border-hover);}
-  .dots i.on{background:var(--mode);border-color:var(--mode);box-shadow:0 0 8px var(--mode);}
-  .dots span{margin-left:4px;}
-  details.tset{margin-top:10px;width:min(430px,100%);border-radius:18px;padding:0;}
-  details.tset[open]{padding:0 18px 16px;}
-  summary{cursor:pointer;color:var(--ink-soft);font-size:13px;font-weight:600;text-align:center;padding:9px 16px;list-style:none;}
+  /* timer */
+  .timer{min-width:0;}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;}
+  .time{font-weight:700;font-size:clamp(88px,14vw,200px);line-height:.95;letter-spacing:-.06em;font-variant-numeric:tabular-nums;margin:16px 0 8px -4px;}
+  .progress{height:6px;border-radius:3px;background:rgba(255,255,255,.15);max-width:520px;overflow:hidden;}
+  .progress i{display:block;height:100%;width:100%;background:var(--mode);transform-origin:left;transition:transform .3s linear,background 1s ease;}
+  .label{margin-top:12px;font-size:15px;color:var(--soft);}
+  .t-actions{margin-top:22px;display:flex;gap:10px;flex-wrap:wrap;}
+  .t-actions button{font-weight:700;font-size:15px;border-radius:14px;padding:15px 26px;background:var(--chip);}
+  .t-actions button:hover{background:var(--chip-hover);}
+  .t-actions .primary{background:var(--mode);color:var(--dark);min-width:150px;transition:background 1s ease;}
+  .t-actions .primary:hover{background:var(--mode);filter:brightness(1.08);}
+  .dots{display:flex;align-items:center;gap:7px;margin-top:18px;font-size:12px;color:var(--soft);}
+  .dots i{width:9px;height:9px;border-radius:50%;border:1px solid rgba(255,255,255,.6);}
+  .dots i.on{background:var(--mode);border-color:var(--mode);}
+  .dots span{margin-left:6px;}
+  details.tset{margin-top:16px;max-width:460px;border-radius:16px;}
+  details.tset[open]{background:rgba(0,0,0,.28);padding:4px 18px 18px;}
+  summary{cursor:pointer;display:inline-block;list-style:none;font-size:13px;color:var(--soft);padding:8px 0;}
   summary::-webkit-details-marker{display:none;}
   summary::before{content:'\2699  ';}
-  .settings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:4px;text-align:left;}
-  .settings label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--ink-soft);}
-  .settings input[type=number],.settings select{background:rgba(0,0,0,0.3);border:1px solid var(--glass-border);border-radius:9px;
-    color:var(--ink);font:600 14px 'Manrope',sans-serif;padding:7px 9px;width:100%;}
-  .settings select option{background:#14121f;color:var(--ink);}
+  summary:hover{color:#fff;}
+  .settings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px;margin-top:6px;}
+  .settings label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--soft);}
+  .settings input[type=number],.settings select{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.18);border-radius:10px;
+    color:#fff;font:500 15px 'Space Grotesk',sans-serif;padding:8px 10px;width:100%;}
+  .settings select option{background:#14183a;color:#fff;}
   .settings .full{grid-column:1/-1;}
-  .settings .check{flex-direction:row;align-items:center;gap:10px;font-size:14px;color:var(--ink);grid-column:1/-1;cursor:pointer;}
+  .settings .check{flex-direction:row;align-items:center;gap:10px;font-size:14px;color:#fff;grid-column:1/-1;cursor:pointer;}
   .settings .check input{accent-color:var(--mode);margin:0;}
 
-  /* player dock: one slim bar */
-  .dock{width:min(1000px,calc(100% - 32px));margin:0 auto 10px;border-radius:24px;padding:12px 18px 14px;
-    display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:10px 18px;}
-  .np{min-width:0;display:flex;align-items:center;gap:12px;}
-  .disc{width:46px;height:46px;border-radius:50%;flex:none;
-    background:radial-gradient(circle,#1a1222 0 16%,var(--mode) 17% 30%,#15121d 31% 100%);
-    box-shadow:inset 0 0 0 1px rgba(255,255,255,.12),0 4px 14px -4px rgba(0,0,0,.6);}
-  body.is-playing .disc{animation:spin 4s linear infinite;}
-  @keyframes spin{to{transform:rotate(360deg);}}
-  .np-text{min-width:0;}
-  .np-kicker{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;display:flex;align-items:center;white-space:nowrap;overflow:hidden;}
-  .np-title{font-family:'Bricolage Grotesque','Manrope',sans-serif;font-weight:800;font-size:clamp(16px,1.8vw,19px);letter-spacing:-.01em;line-height:1.2;margin:3px 0 0;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .np-sub{color:var(--ink-soft);font-size:12px;margin-top:2px;}
-  .eq{display:inline-flex;gap:2px;align-items:flex-end;height:11px;margin-right:7px;}
-  .eq i{width:3px;height:30%;background:var(--mode);border-radius:1px;}
-  body.is-playing .eq i{animation:eq 1s ease-in-out infinite;}
-  .eq i:nth-child(2){animation-delay:-.4s !important;} .eq i:nth-child(3){animation-delay:-.7s !important;}
-  @keyframes eq{0%,100%{height:30%;}50%{height:100%;}}
-  .controls{display:flex;align-items:center;gap:10px;}
-  .icon-btn{width:40px;height:40px;padding:0;display:inline-grid;place-items:center;border-radius:50%;}
-  .play-btn{width:54px;height:54px;padding:0;display:inline-grid;place-items:center;border-radius:50%;
-    color:#1a1222;background:var(--ink);border-color:var(--ink);box-shadow:0 0 0 6px rgba(255,255,255,.07),0 8px 26px -8px rgba(255,255,255,.5);}
-  .play-btn:hover{background:#fff;border-color:#fff;}
-  .vol{display:flex;align-items:center;gap:8px;justify-self:end;width:min(180px,100%);color:var(--ink-soft);}
-  .vol-note{justify-self:end;font-size:12px;color:var(--ink-faint);}
-  .seek{grid-column:1/-1;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--ink-soft);font-variant-numeric:tabular-nums;}
-  .seek span{flex:none;min-width:34px;}
+  input[type=range]{accent-color:var(--mode);width:100%;margin:0;}
+
+  /* player bar */
+  .dock{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px 26px;background:rgba(0,0,0,.26);border-radius:20px;padding:14px 20px;}
+  .controls{display:flex;align-items:center;gap:8px;}
+  .icon-btn{width:44px;height:44px;border-radius:50%;background:var(--chip);display:inline-grid;place-items:center;}
+  .icon-btn:hover{background:var(--chip-hover);}
+  .play-btn{width:54px;height:54px;border-radius:50%;background:#fff;color:var(--dark);display:inline-grid;place-items:center;}
+  .seek{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--soft);font-variant-numeric:tabular-nums;}
+  .seek span{flex:none;min-width:30px;}
   .seek span:last-child{text-align:right;}
+  .next{display:flex;align-items:center;gap:10px;min-width:0;}
+  h2{font-size:12px;font-weight:500;color:var(--soft);margin:0;white-space:nowrap;}
+  .queue{list-style:none;margin:0;padding:0;display:flex;gap:8px;align-items:center;}
+  .queue button{display:flex;align-items:center;gap:10px;border-radius:10px;}
+  .queue button i{flex:none;width:44px;height:44px;border-radius:8px;background-size:cover;transition:transform .2s ease;}
+  .queue button:hover i{transform:translateY(-3px);}
+  .queue button span{display:none;font-size:13px;white-space:nowrap;}
+  .queue li:first-child button span:first-of-type{display:inline;max-width:170px;overflow:hidden;text-overflow:ellipsis;}
   #playErr{grid-column:1/-1;}
-  .err{padding:10px 12px;border-radius:10px;border:1px solid rgba(242,123,123,.4);background:rgba(242,123,123,.1);color:#f6bcbc;font-size:13px;}
+  .err{padding:10px 12px;border-radius:10px;background:rgba(239,71,111,.2);border:1px solid rgba(239,71,111,.6);font-size:13px;}
 
-  /* background sounds: compact pills */
-  .amb{width:min(1000px,calc(100% - 32px));margin:0 auto 20px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}
-  .amb label{display:grid;grid-template-columns:auto auto minmax(0,1fr);align-items:center;gap:10px;padding:10px 16px;border-radius:999px;cursor:pointer;
-    transition:border-color .3s ease;}
-  .amb label b{font-size:13px;font-weight:600;}
-  .amb label svg{color:var(--ink-faint);transition:color .3s ease;}
-  .amb label.on{border-color:color-mix(in srgb,var(--mode) 55%,transparent);}
-  .amb label.on svg{color:var(--mode);}
+  /* sound levels */
+  .amb{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;}
+  .amb label{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:12px;padding:10px 16px;border-radius:999px;background:var(--chip);cursor:pointer;font-size:13px;}
+  .amb label b{font-weight:500;white-space:nowrap;}
+  .amb label.on{background:rgba(255,255,255,.2);}
+  .amb label.on b{font-weight:700;color:var(--mode);}
+  .vol-note{font-size:12px;color:var(--faint);align-self:center;padding:0 8px;}
 
-  /* below the fold */
-  .lower{position:relative;z-index:1;width:min(1000px,calc(100% - 32px));margin:0 auto;padding:8px 0 80px;
-    display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:16px;align-items:start;}
-  .panel{border-radius:22px;padding:20px 22px;background:var(--glass-strong);}
-  h2{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);margin:0 0 14px;font-weight:600;}
-  .queue{list-style:none;margin:0;padding:0;display:grid;gap:6px;}
-  .queue button{width:100%;display:flex;justify-content:space-between;gap:10px;text-align:left;font-weight:600;background:rgba(255,255,255,0.04);border-radius:12px;}
-  .queue button span:last-child{color:var(--ink-faint);font-variant-numeric:tabular-nums;font-weight:400;}
-  .about p{margin:0 0 10px;color:var(--ink-soft);font-size:14px;line-height:1.65;}
-  .about p:last-child{margin:0;font-size:12px;color:var(--ink-faint);}
-  .about kbd{font:600 11px ui-monospace,Consolas,monospace;padding:1px 5px;border:1px solid var(--glass-border);border-radius:4px;color:var(--ink-soft);}
+  .about{font-size:13px;line-height:1.65;color:var(--soft);max-width:900px;}
+  .about p{margin:0 0 6px;}
+  .about kbd{font:600 11px ui-monospace,Consolas,monospace;padding:1px 5px;border:1px solid rgba(255,255,255,.3);border-radius:4px;}
 
-  @media (max-width:900px){
-    header{flex-wrap:wrap;}
-    .scenes{order:3;width:100%;justify-content:center;}
+  @media (max-width:980px){
+    .next h2{display:none;}
+    .queue li:first-child button span:first-of-type{display:none;}
   }
   @media (max-width:760px){
-    header{padding:12px 16px;}
-    .dock{grid-template-columns:minmax(0,1fr) auto;padding:12px 14px;}
-    .vol,.vol-note{grid-column:1/-1;justify-self:stretch;width:auto;}
-    .amb{grid-template-columns:1fr;}
-    .lower{grid-template-columns:1fr;}
-  }
-  @media (max-width:520px){
-    .scenes{gap:2px;}
-    .scenes button{padding:7px 10px;font-size:12px;gap:5px;}
-    .scenes .sw{display:none;}
-    .tabs button{padding:7px 10px;font-size:12px;}
+    .stage{padding:18px 18px 22px;gap:18px;}
+    .scenes{margin-left:0;width:100%;order:3;overflow-x:auto;scrollbar-width:none;}
+    header .all{margin-left:auto;}
+    .main{grid-template-columns:1fr;gap:20px;justify-items:start;padding:0;}
+    .deck{--w:58vw;}
+    .time{margin-top:12px;}
+    .t-actions button{padding:14px 20px;}
+    .dock{grid-template-columns:auto minmax(0,1fr);padding:14px 16px;}
+    .next{justify-content:flex-end;}
+    .seek{grid-column:1/-1;grid-row:2;}
+    .amb{grid-template-columns:1fr 1fr;}
   }
   @media (max-width:420px){
-    header .onair{display:none;}
-    .controls{gap:6px;}
-    .icon-btn{width:36px;height:36px;}
-    .play-btn{width:48px;height:48px;}
-    .disc{display:none;}
+    .scenes button,.tabs button{padding:7px 11px;font-size:12px;}
+    .queue li:nth-child(n+3){display:none;}
+    .amb{grid-template-columns:1fr;}
   }
   .hide{display:none !important;}
   .sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;}
-  @media (prefers-reduced-motion:no-preference){button{transition:border-color .2s ease,background .4s ease,color .4s ease;}}
   @media (prefers-reduced-motion:reduce){
-    .scene *, body.is-playing .disc{animation:none !important;}
-    body.is-playing .eq i{animation:none;height:70%;}
+    body.is-playing .record{animation:none;}
+    .progress i,.t-actions .primary,.queue button i{transition:none;}
   }
 </style>
 </head>
@@ -409,95 +305,93 @@
 
 <div class="stage">
   <header>
-    <span class="badge"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 14v-2a9 9 0 0 1 18 0v2"/><rect x="2" y="14" width="5" height="7" rx="2"/><rect x="17" y="14" width="5" height="7" rx="2"/></svg></span>
     <span class="name">Custombiztool Focus Radio</span>
-    <span class="onair">On air</span>
-    <div class="scenes glass" role="group" aria-label="Scene">
-      <button data-scene="city" aria-pressed="true"><span class="sw" style="background:linear-gradient(#0b1029,#3a2449)"></span>Night city</button>
-      <button data-scene="cafe" aria-pressed="false"><span class="sw" style="background:linear-gradient(#3a2a52,#6b4429)"></span>Coffee shop</button>
-      <button data-scene="beach" aria-pressed="false"><span class="sw" style="background:linear-gradient(#7a2f63,#ffa060)"></span>Beach</button>
-      <button data-scene="forest" aria-pressed="false"><span class="sw" style="background:linear-gradient(#173244,#3f5f5a)"></span>Forest cabin</button>
+    <div class="scenes" role="group" aria-label="Station">
+      <button data-scene="city" aria-pressed="true">Night city</button>
+      <button data-scene="cafe" aria-pressed="false">Coffee shop</button>
+      <button data-scene="beach" aria-pressed="false">Beach</button>
+      <button data-scene="forest" aria-pressed="false">Forest cabin</button>
     </div>
     <a class="all" href="https://custombiztools.online">All tools</a>
   </header>
 
-  <main class="center" aria-label="Focus timer">
-    <h1 class="sr-only">Custombiztool Focus Radio: music to work to, with a timer that keeps you honest.</h1>
-    <div class="tabs glass" role="group" aria-label="Timer mode">
-      <button data-mode="focus" aria-pressed="true">Focus</button>
-      <button data-mode="short" aria-pressed="false">Short break</button>
-      <button data-mode="long" aria-pressed="false">Long break</button>
-    </div>
-    <div class="time" id="tTime" role="timer" aria-live="off">25:00</div>
-    <div class="label" id="tLabel">Ready to focus</div>
-    <div class="progress" aria-hidden="true"><i id="tBar"></i></div>
-    <div class="t-actions">
-      <button class="primary" id="btnTimer">Start focus</button>
-      <button id="btnReset">Reset</button>
-      <button id="btnSkip">Skip</button>
-    </div>
-    <div class="dots" id="dots" aria-label="Sessions until long break"></div>
-    <details class="tset glass">
-      <summary>Timer settings</summary>
-      <div class="settings">
-        <label>Focus (minutes)<input type="number" id="sFocus" min="1" max="180" value="25"></label>
-        <label>Short break<input type="number" id="sShort" min="1" max="60" value="5"></label>
-        <label>Long break<input type="number" id="sLong" min="1" max="90" value="15"></label>
-        <label>Long break every<input type="number" id="sEvery" min="2" max="12" value="4"></label>
-        <label class="full">During breaks, the music should
-          <select id="sBreak">
-            <option value="lower">Get quieter</option>
-            <option value="pause">Pause</option>
-            <option value="keep">Keep playing as is</option>
-          </select>
-        </label>
-        <label class="check"><input type="checkbox" id="sAuto" checked> Start the next session automatically</label>
-        <label class="check"><input type="checkbox" id="sMusic" checked> Start the music when a focus session starts</label>
-        <label class="check"><input type="checkbox" id="sChime" checked> Soft chime when a session ends</label>
-      </div>
-    </details>
-  </main>
-
-  <section class="dock glass" aria-label="Music player">
-    <div class="np">
-      <span class="disc" aria-hidden="true"></span>
-      <div class="np-text">
-        <div class="np-kicker"><span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>Now playing &middot; Focus Mix</div>
+  <div class="main">
+    <div class="deck">
+      <div class="record" aria-hidden="true"></div>
+      <div class="sleeve" id="cover">
+        <div class="np-kicker">Now playing &middot; Focus Mix</div>
         <p class="np-title" id="npTitle">&nbsp;</p>
         <div class="np-sub" id="npSub">Original track</div>
       </div>
     </div>
+
+    <main class="timer" aria-label="Focus timer">
+      <h1 class="sr-only">Custombiztool Focus Radio: music to work to, with a timer that keeps you honest.</h1>
+      <div class="tabs" role="group" aria-label="Timer mode">
+        <button data-mode="focus" aria-pressed="true">Focus</button>
+        <button data-mode="short" aria-pressed="false">Short break</button>
+        <button data-mode="long" aria-pressed="false">Long break</button>
+      </div>
+      <div class="time" id="tTime" role="timer" aria-live="off">25:00</div>
+      <div class="progress" aria-hidden="true"><i id="tBar"></i></div>
+      <div class="label" id="tLabel">Ready to focus</div>
+      <div class="t-actions">
+        <button class="primary" id="btnTimer">Start focus</button>
+        <button id="btnReset">Reset</button>
+        <button id="btnSkip">Skip</button>
+      </div>
+      <div class="dots" id="dots" aria-label="Sessions until long break"></div>
+      <details class="tset">
+        <summary>Timer settings</summary>
+        <div class="settings">
+          <label>Focus (minutes)<input type="number" id="sFocus" min="1" max="180" value="25"></label>
+          <label>Short break<input type="number" id="sShort" min="1" max="60" value="5"></label>
+          <label>Long break<input type="number" id="sLong" min="1" max="90" value="15"></label>
+          <label>Long break every<input type="number" id="sEvery" min="2" max="12" value="4"></label>
+          <label class="full">During breaks, the music should
+            <select id="sBreak">
+              <option value="lower">Get quieter</option>
+              <option value="pause">Pause</option>
+              <option value="keep">Keep playing as is</option>
+            </select>
+          </label>
+          <label class="check"><input type="checkbox" id="sAuto" checked> Start the next session automatically</label>
+          <label class="check"><input type="checkbox" id="sMusic" checked> Start the music when a focus session starts</label>
+          <label class="check"><input type="checkbox" id="sChime" checked> Soft chime when a session ends</label>
+        </div>
+      </details>
+    </main>
+  </div>
+
+  <section class="dock" aria-label="Music player">
     <div class="controls">
-      <button class="icon-btn" id="btnPrev" aria-label="Previous track"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
+      <button class="icon-btn" id="btnPrev" aria-label="Previous track"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
       <button class="play-btn" id="btnPlay" aria-label="Play"><svg id="icoPlay" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4v16l13-8z"/></svg><svg id="icoPause" class="hide" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg></button>
-      <button class="icon-btn" id="btnNext" aria-label="Next track"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg></button>
+      <button class="icon-btn" id="btnNext" aria-label="Next track"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg></button>
     </div>
-    <label class="vol" id="volWrap"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg><input type="range" id="vol" min="0" max="100" value="80" aria-label="Music volume"></label>
-    <span class="vol-note hide" id="volNote">Use your device's volume buttons</span>
     <div class="seek">
       <span id="tCur">0:00</span>
       <input type="range" id="seek" min="0" max="1000" value="0" aria-label="Seek">
       <span id="tDur">0:00</span>
     </div>
+    <div class="next" aria-label="Up next">
+      <h2>Up next</h2>
+      <ol class="queue" id="queue"></ol>
+    </div>
     <div id="playErr"></div>
   </section>
 
-  <section class="amb" aria-label="Background sounds">
-    <label class="glass" id="ambRainL"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 15.5A4.5 4.5 0 0 0 17.5 7 6 6 0 0 0 6 9a4 4 0 0 0 0 8"/><path d="M8 19v2M12 17v4M16 19v2"/></svg><b>Rain</b><input type="range" id="ambRain" min="0" max="100" value="0" aria-label="Rain volume"></label>
-    <label class="glass" id="ambFireL"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22c4 0 7-2.7 7-7 0-4-3-6.5-4-10-2 2-3 4-3 6-1-1-2-2-2-4-2 2-5 5-5 8 0 4.3 3 7 7 7z"/></svg><b>Fireplace</b><input type="range" id="ambFire" min="0" max="100" value="0" aria-label="Fireplace volume"></label>
-    <label class="glass" id="ambBrownL"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12c2-4 4-4 6 0s4 4 6 0 4-4 6 0"/></svg><b>Deep hum</b><input type="range" id="ambBrown" min="0" max="100" value="0" aria-label="Deep hum volume"></label>
+  <section class="amb" aria-label="Sound levels">
+    <label id="volWrap"><b>Music</b><input type="range" id="vol" min="0" max="100" value="80" aria-label="Music volume"></label>
+    <span class="vol-note hide" id="volNote">Music: use your device's volume buttons</span>
+    <label id="ambRainL"><b>Rain</b><input type="range" id="ambRain" min="0" max="100" value="0" aria-label="Rain volume"></label>
+    <label id="ambFireL"><b>Fireplace</b><input type="range" id="ambFire" min="0" max="100" value="0" aria-label="Fireplace volume"></label>
+    <label id="ambBrownL"><b>Deep hum</b><input type="range" id="ambBrown" min="0" max="100" value="0" aria-label="Deep hum volume"></label>
   </section>
-</div>
 
-<div class="lower">
-  <section class="panel glass" aria-label="Up next">
-    <h2>Up next</h2>
-    <ol class="queue" id="queue"></ol>
-  </section>
-  <section class="panel glass about" aria-label="About Custombiztool Focus Radio">
-    <h2>How it works</h2>
-    <p>Pick a scene, press play, start a focus session, and get to work. The music lowers itself when it is time for a break and comes back when you do. Free, no signup, nothing to install.</p>
-    <p>All music on Custombiztool Focus Radio is original. Shortcuts: <kbd>Space</kbd> play or pause music, <kbd>N</kbd> next track, <kbd>T</kbd> start or pause the timer. The timer keeps time in a background tab, and the countdown shows in the tab title. Your settings and scene are remembered on this device.</p>
+  <section class="about" aria-label="About Custombiztool Focus Radio">
+    <p>Pick a station, press play, start a focus session, and get to work. The music lowers itself when it is time for a break and comes back when you do. Free, no signup, nothing to install. All music is original.</p>
+    <p>Shortcuts: <kbd>Space</kbd> play or pause music, <kbd>N</kbd> next track, <kbd>T</kbd> start or pause the timer. The timer keeps time in a background tab, and the countdown shows in the tab title. Your settings and station are remembered on this device.</p>
   </section>
 </div>
 
@@ -706,7 +600,8 @@
     }
     window.addEventListener('resize', resize);
     resize();
-    if (!REDUCED) requestAnimationFrame(loop);
+    // the scene layer is hidden in the paper look, so the rain never needs to run
+    if (!REDUCED && cv.offsetParent !== null) requestAnimationFrame(loop);
     return { redraw: function(){ if (REDUCED) draw(false); } };
   })();
 
@@ -717,10 +612,10 @@
   }
 
   var SCENES = {
-    city:   { el: 'scCity',   drizzle: 0.18, theme: '#070814', label: 'Night city' },
-    cafe:   { el: 'scCafe',   drizzle: 0,    theme: '#170d08', label: 'Coffee shop' },
-    beach:  { el: 'scBeach',  drizzle: 0,    theme: '#241640', label: 'Beach' },
-    forest: { el: 'scForest', drizzle: 0,    theme: '#07121f', label: 'Forest cabin' }
+    city:   { el: 'scCity',   drizzle: 0.18, theme: '#14183a', label: 'Night city' },
+    cafe:   { el: 'scCafe',   drizzle: 0,    theme: '#14183a', label: 'Coffee shop' },
+    beach:  { el: 'scBeach',  drizzle: 0,    theme: '#14183a', label: 'Beach' },
+    forest: { el: 'scForest', drizzle: 0,    theme: '#14183a', label: 'Forest cabin' }
   };
   function pickScene(name){
     if (!SCENES[name]) name = 'city';
@@ -782,10 +677,45 @@
     load(autoplay);
   }
 
+  // ---- cover art: every track gets a generated sleeve, always the same one ----
+  // [sleeve from, sleeve to, small shape, big shape, page dark 1, 2, 3, accent]
+  var PAL = {
+    sunset: ['#f7a072', '#06d6a0', '#ffd166', '#ef476f', '#0f3d3e', '#1b1f4b', '#3a1244', '#ffd166'],
+    ocean:  ['#48cae4', '#023e8a', '#caf0f8', '#ff9f1c', '#062a40', '#0b1a4a', '#1d1147', '#ff9f1c'],
+    forest: ['#b7e4c7', '#2d6a4f', '#f4d35e', '#1b4332', '#0d2b22', '#12303a', '#241a3d', '#f4d35e'],
+    violet: ['#cdb4db', '#5a189a', '#ffafcc', '#ffd60a', '#2a0f47', '#1a1446', '#3d0f3a', '#ffd60a'],
+    clay:   ['#f4a261', '#e76f51', '#264653', '#e9c46a', '#3a1c14', '#2b1a3f', '#102c3a', '#e9c46a'],
+    night:  ['#3a0ca3', '#4cc9f0', '#f72585', '#ffd6ff', '#0c1033', '#1a0f45', '#3a0b3e', '#4cc9f0'],
+    coffee: ['#ddb892', '#7f5539', '#ede0d4', '#b08968', '#2b1a10', '#2a1b3a', '#11263a', '#ffcf8a'],
+    mint:   ['#80ffdb', '#5390d9', '#7400b8', '#ffe66d', '#0b2f3a', '#161c52', '#33104a', '#ffe66d']
+  };
+  var PAL_KEYS = ['ocean', 'violet', 'clay', 'mint', 'sunset', 'forest', 'coffee', 'night'];
+  var SCENE_PAL = { city: 'night', cafe: 'coffee', beach: 'sunset', forest: 'forest' };
+  function cover(t){
+    var h = 7;
+    for (var i = 0; i < t.title.length; i++) h = (h * 31 + t.title.charCodeAt(i)) >>> 0;
+    var p = PAL[t.scene ? SCENE_PAL[t.scene] : PAL_KEYS[h % PAL_KEYS.length]];
+    var x1 = 15 + h % 30, y1 = 55 + (h >> 3) % 30, r1 = 14 + (h >> 5) % 10;
+    var x2 = 55 + (h >> 7) % 30, y2 = 15 + (h >> 9) % 30, r2 = 22 + (h >> 11) % 14, ang = 120 + (h >> 13) % 80;
+    return { p: p, art:
+      'radial-gradient(circle at ' + x1 + '% ' + y1 + '%,' + p[2] + ' 0 ' + r1 + '%,transparent ' + (r1 + 0.4) + '%),' +
+      'radial-gradient(circle at ' + x2 + '% ' + y2 + '%,' + p[3] + ' 0 ' + r2 + '%,transparent ' + (r2 + 0.4) + '%),' +
+      'linear-gradient(' + ang + 'deg,' + p[0] + ',' + p[1] + ')' };
+  }
+  function applyCover(t){
+    var c = cover(t), s = document.body.style;
+    $('cover').style.backgroundImage = c.art;
+    s.setProperty('--d1', c.p[4]); s.setProperty('--d2', c.p[5]); s.setProperty('--d3', c.p[6]);
+    s.setProperty('--accent', c.p[7]); s.setProperty('--label', c.p[3]);
+    var meta = document.querySelector('meta[name=theme-color]');
+    if (meta) meta.setAttribute('content', c.p[5]);
+  }
+
   function current(){ return TRACKS[order[pos]]; }
   function load(autoplay){
     var t = current();
     au.src = t.file;
+    applyCover(t);
     $('npTitle').textContent = t.title;
     $('npSub').textContent = (t.scene ? SCENES[t.scene].label + ' theme' : 'Original track') + ' · ' + fmt(t.dur);
     $('tDur').textContent = fmt(t.dur);
@@ -812,13 +742,15 @@
 
   function renderQueue(){
     var q = $('queue'); q.innerHTML = '';
-    order.slice(pos + 1, pos + 1 + Math.min(3, TRACKS.length - 1)).forEach(function(idx, n){
+    order.slice(pos + 1, pos + 1 + Math.min(4, TRACKS.length - 1)).forEach(function(idx, n){
       var t = TRACKS[idx];
       var li = document.createElement('li');
       var b = document.createElement('button');
-      b.innerHTML = '<span></span><span></span>';
-      b.firstChild.textContent = t.title;
+      b.innerHTML = '<i></i><span></span><span></span>';
+      b.firstChild.style.backgroundImage = cover(t).art;
+      b.children[1].textContent = t.title;
       b.lastChild.textContent = fmt(t.dur);
+      b.title = t.title;
       b.setAttribute('aria-label', 'Play ' + t.title);
       b.addEventListener('click', function(){ pos = pos + 1 + n; ensureAhead(); load(true); });
       li.appendChild(b); q.appendChild(li);
